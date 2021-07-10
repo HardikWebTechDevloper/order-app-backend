@@ -7,5 +7,6 @@ const Authentication = require('../middleware/auth');
 
 // a simple test url to check that all of our files are communicating correctly.
 router.post('/create', rolesController.createRole);
+router.post('/get/all', rolesController.getRoles);
 
 module.exports = router;

@@ -45,3 +45,32 @@ exports.createRole = async function (request, response) {
         return response.status(400).send({ status: false, message: error })
     }
 };
+
+/**
+ * Get all roles.
+ *
+ * @param title, description, author
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-07-10
+ */
+exports.getRoles = async function (request, response) {
+    try {
+        Role.find({}, function (err, data) {
+            if (err) {
+                return response.status(404).send({
+                    status: false,
+                    message: "Something went wrong."
+                })
+            } else {
+                return response.status(404).send({
+                    status: true,
+                    message: "Roles founded.",
+                    data: data
+                })
+            }
+        });
+    } catch (error) {
+        return response.status(400).send({ status: false, message: error })
+    }
+};
