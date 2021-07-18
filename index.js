@@ -4,8 +4,9 @@ const fileUpload = require("express-fileupload");
 const cors = require('cors');
 const mongoose = require('mongoose');
 
-const user = require('./apps/routes/users.routes');
-const roles = require('./apps/routes/roles.routes');
+// routes
+const routes = require('./apps/routes/index.route');
+
 
 //Setup enviroment file
 require('dotenv').config({ path: __dirname + '/.env' })
@@ -28,13 +29,7 @@ app.use(fileUpload());
 app.use(express.static(__dirname + '/public'));
 app.use(cors());
 
-//Routes
-app.get('/', (request, response) => {
-    return response.send({message: "Welcome to OrderApp API."})
-})
-
-app.use('/user', user);
-app.use('/role', roles);
+app.use('/api/v1', routes)
 
 app.listen(port, () => {
     console.log('Server is up and running on port number ' + port);

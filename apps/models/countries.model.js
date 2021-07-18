@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-let RolesSchema = new Schema({
-    role_name: {
+let CountriesSchema = new Schema({
+    country_name: {
         type: String,
         required: true,
         trim: true
@@ -16,4 +16,4 @@ let RolesSchema = new Schema({
 });
 
 // Export the model
-module.exports = mongoose.model('roles', RolesSchema);
+module.exports = mongoose.model('countries', CountriesSchema);

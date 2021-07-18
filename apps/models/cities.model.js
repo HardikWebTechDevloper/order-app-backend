@@ -1,11 +1,16 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-let RolesSchema = new Schema({
-    role_name: {
+let CitiesSchema = new Schema({
+    city_name: {
         type: String,
         required: true,
         trim: true
+    },
+    state_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'states',
+        required: true
     },
     is_active: {
         type: Boolean,
@@ -16,4 +21,4 @@ let RolesSchema = new Schema({
 });
 
 // Export the model
-module.exports = mongoose.model('roles', RolesSchema);
+module.exports = mongoose.model('cities', CitiesSchema);

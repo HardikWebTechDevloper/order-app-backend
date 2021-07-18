@@ -56,7 +56,7 @@ exports.signIn = async function (request, response) {
             data: { user, token }
         });
     } catch (error) {
-        return response.status(400).send({ status: false, message: "Something went wrong" })
+        return response.send({ status: false, message: "Something went wrong" })
     }
 };
 
@@ -90,7 +90,7 @@ exports.sendOTP = async function (request, response) {
             });
         }
     } catch (error) {
-        return response.status(400).send({ status: false, message: "Something went wrong" })
+        return response.send({ status: false, message: "Something went wrong" })
     }
 };
 
@@ -125,6 +125,98 @@ exports.verifyOTP = async function (request, response) {
             data: { user, token }
         });
     } catch (error) {
-        return response.status(400).send({ status: false, message: "Something went wrong" })
+        return response.send({ status: false, message: "Something went wrong" })
     }
 };
+
+/**
+ * Create Distributor
+ *
+ * @param User Object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.createDistributor = async function (request, response) {
+    try {
+        const { phone, email } = request.body;
+
+        // Search for a user by phone.
+        const userPhoneExists = await User.findOne({ phone });
+        if (userPhoneExists) {
+            return response.send({ status: false, message: 'Phone number is already exists in our records.' });
+        }
+
+        // Search for a user by email.
+        const userEmailExists = await User.findOne({ email });
+        if (userEmailExists) {
+            return response.send({ status: false, message: 'Email is already exists in our records.' });
+        }
+
+        const user = new User(request.body)
+        await user.save();
+
+        if (user && user.id) {
+            return response.send({ status: true, message: 'Distributor has been created successfully.', data: user });
+        } else {
+            return response.send({ status: false, message: 'Something went wrong with distributor creation.' });
+        }
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+
+/**
+ * Update Distributor
+ *
+ * @param User Object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.updateDistributor = async function (request, response) {
+    try {
+        const { user_id } = request.body;
+        const body = request.body;
+
+        delete body.user_id;
+
+        User.updateOne({ _id: user_id }, body, function (err, data) {
+            if (err) {
+                return response.send({ status: false, message: 'Distributor has not been updated.' });
+            } else {
+                return response.send({ status: true, message: 'Distributor has been updated successfully.' });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+
+/**
+ * Find all users or by role id wise
+ *
+ * @param User Object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.getUsers = async function (request, response) {
+    try {
+        const { role_id } = request.body;
+
+        let whereClause = {};
+
+        if (role_id && role_id != '') {
+            whereClause.role_id = role_id;
+        }
+
+        User.find(whereClause, function (err, data) {
+            if (err) {
+                return response.send({ status: false, message: 'Something went wrong' });
+            } else {
+                return response.send({ status: true, message: 'User found.', data: data });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+

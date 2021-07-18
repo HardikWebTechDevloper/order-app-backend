@@ -36,12 +36,43 @@ let UsersSchema = new Schema({
     role_id: {
         type: Schema.Types.ObjectId,
         ref: 'roles',
+        required: true
+    },
+    city_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'cities',
         required: false
     },
-    password: {
+    state_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'states',
+        required: false
+    },
+    country_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'countries',
+        required: false
+    },
+    pin_code: {
+        type: Number,
+        required: false,
+        trim: true,
+        maxlength: 10
+    },
+    distributor_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'users',
+        required: false
+    },
+    distributor_commision: {
+        type: Number,
+        required: false,
+        default: 0
+    },
+    distributor_tax_details: {
         type: String,
-        required: true,
-        minLength: 7
+        required: false,
+        default: null
     },
     otp: {
         type: Number,
@@ -60,8 +91,9 @@ let UsersSchema = new Schema({
     status: {
         type: Number,
         default: 1
-    },
-    created_at: { type: Number, default: Date.now },
+    }
+}, {
+    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
 UsersSchema.pre('save', async function (next) {
@@ -82,17 +114,20 @@ UsersSchema.methods.generateAuthToken = async function () {
     return token;
 }
 
-UsersSchema.statics.findByCredentials = async (email, password) => {
-    // Search for a user by email and password.
-    const user = await User.findOne({ email })
-    if (!user) {
-        throw new Error({ error: 'Invalid login credentials' })
+UsersSchema.statics.findByCredentials = async (phone, otp) => {
+    // Search for a user by phone.
+    const isPhoneMatch = await User.findOne({ phone })
+    if (!isPhoneMatch) {
+        throw new Error({ error: 'Phone number has not been matched with our records.' })
     }
-    const isPasswordMatch = await bcrypt.compare(password, user.password)
-    if (!isPasswordMatch) {
-        throw new Error({ error: 'Invalid login credentials' })
+
+    // Search for a user by phone and otp
+    const isOTPMatch = await User.findOne({ phone, otp })
+    if (!isOTPMatch) {
+        throw new Error({ error: 'Invalid OTP. Please enter valid OTP code.' })
     }
-    return user
+
+    return isOTPMatch;
 }
 
 // Export the model
