@@ -64,3 +64,44 @@ exports.updateDistributorValidation = Validate([
     body("distributor_commision", "Distributor commision is required").isInt().escape().trim().exists().notEmpty(),
     body("distributor_tax_details", "Distributor tax details is required").isString().escape().trim().exists().notEmpty(),
 ]);
+
+/**
+ * Create Staff
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ * @returns {object} user object
+ */
+exports.createStaffValidation = Validate([
+    body("distributor_id", "Distributor is required").isString().escape().trim().exists().notEmpty(),
+    body("phone", "Phone number is required").isInt().escape().trim().exists().notEmpty()
+        .matches(/^([0|\+[0-9]{1,5})?([7-9][0-9]{9})$/).withMessage("Please enter valid phone number"),
+    body("email", "Email is required").isString().escape().trim().exists().notEmpty().isEmail(),
+    body("first_name", "First name is required").isString().escape().trim().exists().notEmpty(),
+    body("last_name", "Last name is required").isString().escape().trim().exists().notEmpty(),
+    body("role_id", "Role id is required").isString().escape().trim().exists().notEmpty(),
+]);
+
+/**
+ * Edit Staff
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ * @returns {object} user object
+ */
+exports.updateStaffValidation = Validate([
+    body("user_id", "User id is required").isString().escape().trim().exists().notEmpty(),
+    body("first_name", "First name is required").isString().escape().trim().exists().notEmpty(),
+    body("last_name", "Last name is required").isString().escape().trim().exists().notEmpty()
+]);
+
+/**
+ * Delete Staff
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ * @returns {object} user object
+ */
+exports.deleteUser = Validate([
+    body("user_id", "User id is required").isString().escape().trim().exists().notEmpty()
+]);

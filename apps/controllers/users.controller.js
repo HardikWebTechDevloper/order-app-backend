@@ -139,6 +139,7 @@ exports.verifyOTP = async function (request, response) {
 exports.createDistributor = async function (request, response) {
     try {
         const { phone, email } = request.body;
+        let body = request.body;
 
         // Search for a user by phone.
         const userPhoneExists = await User.findOne({ phone });
@@ -151,6 +152,9 @@ exports.createDistributor = async function (request, response) {
         if (userEmailExists) {
             return response.send({ status: false, message: 'Email is already exists in our records.' });
         }
+
+        body.status = true;
+        body.isDeleted = false;
 
         const user = new User(request.body)
         await user.save();
@@ -202,7 +206,9 @@ exports.getUsers = async function (request, response) {
     try {
         const { role_id } = request.body;
 
-        let whereClause = {};
+        let whereClause = {
+            status: true
+        };
 
         if (role_id && role_id != '') {
             whereClause.role_id = role_id;
@@ -220,3 +226,92 @@ exports.getUsers = async function (request, response) {
     }
 };
 
+
+/**
+ * Create staff
+ *
+ * @param User Object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.createStaff = async function (request, response) {
+    try {
+        const { phone, email } = request.body;
+        let body = request.body;
+
+        // Search for a user by phone.
+        const userPhoneExists = await User.findOne({ phone });
+        if (userPhoneExists) {
+            return response.send({ status: false, message: 'Phone number is already exists in our records.' });
+        }
+
+        // Search for a user by email.
+        const userEmailExists = await User.findOne({ email });
+        if (userEmailExists) {
+            return response.send({ status: false, message: 'Email is already exists in our records.' });
+        }
+
+        body.status = true;
+        body.isDeleted = false;
+
+        const user = new User(request.body)
+        await user.save();
+
+        if (user && user.id) {
+            return response.send({ status: true, message: 'Staff member has been added successfully.', data: user });
+        } else {
+            return response.send({ status: false, message: 'Something went wrong with staff member creation.' });
+        }
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+
+/**
+ * Update Staff
+ *
+ * @param User Object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.updateStaff = async function (request, response) {
+    try {
+        const { user_id } = request.body;
+        const body = request.body;
+
+        delete body.user_id;
+
+        User.updateOne({ _id: user_id }, body, function (err, data) {
+            if (err) {
+                return response.send({ status: false, message: 'Distributor has not been updated.' });
+            } else {
+                return response.send({ status: true, message: 'Distributor has been updated successfully.' });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+
+/**
+ * Delete User
+ *
+ * @param user_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.deleteUser = async function (request, response) {
+    try {
+        const { user_id } = request.body;
+
+        User.updateOne({ _id: user_id }, { isDeleted: true }, function (err, data) {
+            if (err) {
+                return response.send({ status: false, message: 'User has not been delete.' });
+            } else {
+                return response.send({ status: true, message: 'User has been deleted successfully.' });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
