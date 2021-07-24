@@ -52,3 +52,14 @@ exports.createCities = Validate([
 exports.getAllCityByState = Validate([
     body("state_id", "State id is required").isString().escape().trim().exists().notEmpty(),
 ]);
+
+/**
+ * Create Brands
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ */
+exports.createBrands = Validate([
+    body("brand_name", "Brand name is required").isString().escape().trim().exists().notEmpty(),
+    body("website", "Website is required").isString().escape().trim().exists().notEmpty(),
+]);
