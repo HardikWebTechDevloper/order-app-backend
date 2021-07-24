@@ -1,6 +1,7 @@
-const User = require('../models/user.model');
 const bcrypt = require('bcryptjs');
-const moment = require('moment');
+
+const User = require('../models/user.model');
+const Role = require('../models/roles.model');
 
 /**
  * Register new user
@@ -204,14 +205,15 @@ exports.updateDistributor = async function (request, response) {
  */
 exports.getUsers = async function (request, response) {
     try {
-        const { role_id } = request.body;
+        const { role_name } = request.body;
 
         let whereClause = {
             status: true
         };
 
-        if (role_id && role_id != '') {
-            whereClause.role_id = role_id;
+        if (role_name && role_name != '') {
+            let role = await getRoleIdByRoleName(role_name);
+            whereClause.role_id = role._id;
         }
 
         User.find(whereClause, function (err, data) {
@@ -315,3 +317,9 @@ exports.deleteUser = async function (request, response) {
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
+
+// Get role_id by name
+async function getRoleIdByRoleName(role_name) {
+    let role = await Role.findOne({ role_name: role_name });
+    return role;
+}
