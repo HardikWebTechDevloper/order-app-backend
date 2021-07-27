@@ -3,9 +3,9 @@ const Schema = mongoose.Schema;
 
 let OrdersSchema = new Schema({
     order_datetime: {
-        type: DateTime,
+        type: Date,
         required: true,
-        trim: true
+        default: Date.now()
     },
     order_status_id: {
         type: Schema.Types.ObjectId,
@@ -13,7 +13,7 @@ let OrdersSchema = new Schema({
         required: true
     },
     amount: {
-        type: Double,
+        type: Number,
         required: true
     },
     deliver_by_id: {
@@ -22,7 +22,7 @@ let OrdersSchema = new Schema({
         required: true
     },
     pincode: {
-        type: Integer,
+        type: Number,
         required: true
     },
     user_id: {

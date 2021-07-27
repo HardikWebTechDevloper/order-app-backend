@@ -1,15 +1,16 @@
-const State = require('../../models/states.model');
+const Order = require('../models/orders.model');
+const User = require('../models/user.model');
 
 /**
- * This function create new state.
+ * This function create new order.
  *
- * @param state_name
+ * @param object
  * @author  Hardik Gadhiya
  * @version 1.0
- * @since   2021-07-17
+ * @since   2021-07-26
  */
-exports.createState = async function (request, response) {
-    // Create a new state
+exports.placeOrder = async function (request, response) {
+    // Create a new order
     try {
         var body = request.body;
         var errors = [];
