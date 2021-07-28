@@ -4,35 +4,24 @@ const Schema = mongoose.Schema;
 let OrdersSchema = new Schema({
     order_datetime: {
         type: Date,
-        required: true,
         default: Date.now()
     },
-    order_status_id: {
-        type: Schema.Types.ObjectId,
-        ref: 'order_statuses',
-        required: true
+    order_status: {
+        type: String,
+        enum: ['OPEN', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'SCHEDULED', 'DELIVED', 'VIEW', 'RETURN'],
+        default: 'OPEN'
     },
     amount: {
         type: Number,
         required: true
     },
-    deliver_by_id: {
-        type: Schema.Types.ObjectId,
-        ref: 'order_statuses',
-        required: true
+    deliver_by: {
+        type: String,
+        enum: ['DUNZO', 'SELF'],
+        default: 'SELF'
     },
     pincode: {
         type: Number,
-        required: true
-    },
-    user_id: {
-        type: Schema.Types.ObjectId,
-        ref: 'users',
-        required: true
-    },
-    brand_id: {
-        type: Schema.Types.ObjectId,
-        ref: 'brands',
         required: true
     },
     distributor_id: {

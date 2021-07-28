@@ -1,5 +1,6 @@
 const Order = require('../models/orders.model');
 const User = require('../models/user.model');
+const Role = require('../models/roles.model');
 
 /**
  * This function create new order.
@@ -12,50 +13,76 @@ const User = require('../models/user.model');
 exports.placeOrder = async function (request, response) {
     // Create a new order
     try {
-        var body = request.body;
-        var errors = [];
+        var { amount, deliver_by, pincode, order_details } = request.body;
 
-        if (errors && errors.length > 0) {
-            var message = errors.join(', ');
-
+        // Find Role
+        let role = await Role.findOne({ role_name: "Distributor" });
+        if (!role) {
             return response.send({
                 status: false,
-                message: message
+                message: "Role details not exixts."
             })
         }
 
-        const state = new State(body)
-        await state.save();
+        let role_id = role._id;
 
-        if (state) {
+        // Find distributor using pincode
+        let distributor = await User.findOne({ role_id: role_id, pin_code: pincode });
+
+        if (!distributor) {
             return response.send({
-                status: true,
-                message: "State has been created successfully."
+                status: false,
+                message: "Distributor not found."
             })
+        }
+
+        let distributor_id = distributor._id;
+
+        let createOrderObj = {
+            amount,
+            deliver_by,
+            pincode,
+            order_details,
+            distributor_id
+        };
+
+        const order = new Order(createOrderObj)
+        await order.save();
+
+        if (order) {
+            return response.status(201).send({
+                status: true,
+                message: "Order has been created successfully."
+            });
         } else {
             return response.send({
                 status: false,
-                message: "Something went wrong. State has not been created."
-            })
+                message: "Something went wrong. Order has not been created."
+            });
         }
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong.", error })
     }
 };
 
 /**
- * Get all states.
+ * Get orders.
  *
- * @param --
+ * @param order_id
  * @author  Hardik Gadhiya
  * @version 1.0
- * @since   2021-07-17
+ * @since   2021-07-28
  */
-exports.getStatesList = async function (request, response) {
+exports.getOrders = async function (request, response) {
     try {
-        let { country_id } = request.body;
+        let { distributor_id, order_status } = request.body;
+        let whereClause = { distributor_id };
 
-        State.find({ is_active: true, country_id: country_id }, function (err, data) {
+        if (order_status) {
+            whereClause.order_status = order_status;
+        }
+
+        Order.find(whereClause, function (err, data) {
             if (err) {
                 return response.send({
                     status: false,
@@ -64,7 +91,7 @@ exports.getStatesList = async function (request, response) {
             } else {
                 return response.send({
                     status: true,
-                    message: "State Found.",
+                    message: "Order Found.",
                     data: data
                 })
             }
