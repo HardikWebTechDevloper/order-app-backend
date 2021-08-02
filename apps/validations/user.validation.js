@@ -107,7 +107,7 @@ exports.deleteUser = Validate([
 ]);
 
 /**
- * Delete Staff
+ * Get Distributor
  * @param {object} req
  * @param {object} res
  * @param {function} next
@@ -115,4 +115,15 @@ exports.deleteUser = Validate([
  */
 exports.getDistributorsValidation = Validate([
     body("brand_user_id", "User id is required").isString().escape().trim().exists().notEmpty()
+]);
+
+/**
+ * Get Staff
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ * @returns {object} user object
+ */
+exports.getStaffValidation = Validate([
+    body("distributor_id", "Distributor id is required").isString().escape().trim().exists().notEmpty()
 ]);

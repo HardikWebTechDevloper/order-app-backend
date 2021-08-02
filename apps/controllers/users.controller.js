@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+var mongoose = require('mongoose')
 
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
@@ -207,17 +208,75 @@ exports.getDistributors = async function (request, response) {
     try {
         const { brand_user_id } = request.body;
 
-        let whereClause = {
-            status: true,
-            brand_user_id: brand_user_id
-        };
+        User.aggregate([
+            {
+                "$match": {
+                    "$and": [
+                        { "status": { "$eq": true } },
+                        // { "brand_user_id": { "$ne": null } },
+                        { "brand_user_id": { "$eq": mongoose.Types.ObjectId(brand_user_id) } }
+                    ]
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "cities",
+                    "localField": "city_id",
+                    "foreignField": "_id",
+                    "as": "city"
+                },
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "status": 1,
+                    "brand_user_id": 1,
+                    "first_name": 1,
+                    "last_name": 1,
+                    "phone": 1,
+                    "city.city_name": 1,
+                }
+            },
+        ]).then(function (data) {
+            return response.send({ status: true, message: 'Distributor found.', data: data });
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
 
-        User.find(whereClause, function (err, data) {
-            if (err) {
-                return response.send({ status: false, message: 'Something went wrong' });
-            } else {
-                return response.send({ status: true, message: 'Distributor found.', data: data });
-            }
+/**
+ * Find staff members
+ *
+ * @param User Object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.getStaffList = async function (request, response) {
+    try {
+        const { distributor_id } = request.body;
+
+        User.aggregate([
+            {
+                "$match": {
+                    "$and": [
+                        { "status": { "$eq": true } },
+                        { "distributor_id": { "$eq": mongoose.Types.ObjectId(distributor_id) } }
+                    ]
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "status": 1,
+                    "distributor_id": 1,
+                    "first_name": 1,
+                    "last_name": 1,
+                    "phone": 1
+                }
+            },
+        ]).then(function (data) {
+            return response.send({ status: true, message: 'Staff found.', data: data });
         });
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong" })
