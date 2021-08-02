@@ -23,3 +23,14 @@ exports.createOrderValidation = Validate([
 exports.getOrderValidation = Validate([
     body("distributor_id", "Distributor id is required").isString().escape().trim().exists().notEmpty(),
 ]);
+
+/**
+ * Update Order Status
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ */
+exports.updateOrderStatusValidation = Validate([
+    body("order_id", "Order id is required").isString().escape().trim().exists().notEmpty(),
+    body("order_status", "Order status is required").isString().escape().trim().exists().notEmpty(),
+]);

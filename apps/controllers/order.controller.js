@@ -2,6 +2,8 @@ const Order = require('../models/orders.model');
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
 
+const moment = require('moment');
+
 /**
  * This function create new order.
  *
@@ -93,6 +95,48 @@ exports.getOrders = async function (request, response) {
                     status: true,
                     message: "Order Found.",
                     data: data
+                })
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: error })
+    }
+};
+
+/**
+ * Accept Order.
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-07-28
+ */
+exports.updateOrderStatus = async function (request, response) {
+    try {
+        let { order_id, order_status, deliver_by } = request.body;
+        let currentDateTime = moment().format("YYYY-MM-DD HH:mm:ss");
+
+        let updateObj = {
+            order_status: order_status,
+            status_updated_at: currentDateTime
+        };
+
+        if (order_status === 'ACCEPTED') {
+            updateObj.deliver_by = deliver_by;
+        }
+
+        Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Something went wrong. Order status has not been updated."
+                })
+            } else {
+                let actionName = order_status.toLowerCase();
+
+                return response.send({
+                    status: true,
+                    message: "Order has been " + actionName + " successfully."
                 })
             }
         });

@@ -197,6 +197,34 @@ exports.updateDistributor = async function (request, response) {
 };
 
 /**
+ * Find all distributors
+ *
+ * @param User Object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.getDistributors = async function (request, response) {
+    try {
+        const { brand_user_id } = request.body;
+
+        let whereClause = {
+            status: true,
+            brand_user_id: brand_user_id
+        };
+
+        User.find(whereClause, function (err, data) {
+            if (err) {
+                return response.send({ status: false, message: 'Something went wrong' });
+            } else {
+                return response.send({ status: true, message: 'Distributor found.', data: data });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+
+/**
  * Find all users or by role id wise
  *
  * @param User Object

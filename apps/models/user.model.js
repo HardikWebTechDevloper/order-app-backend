@@ -59,6 +59,16 @@ let UsersSchema = new Schema({
         trim: true,
         maxlength: 10
     },
+    brand_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'brands',
+        required: false
+    },
+    brand_user_id: {
+        type: Schema.Types.ObjectId,
+        ref: 'users',
+        required: false
+    },
     distributor_id: {
         type: Schema.Types.ObjectId,
         ref: 'users',
