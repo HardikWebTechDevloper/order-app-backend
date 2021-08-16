@@ -32,8 +32,7 @@ exports.siginUserValidation = Validate([
  * @returns {object} user object
  */
 exports.createDistributorValidation = Validate([
-    body("phone", "Phone number is required").isInt().escape().trim().exists().notEmpty()
-        .matches(/^([0|\+[0-9]{1,5})?([7-9][0-9]{9})$/).withMessage("Please enter valid phone number"),
+    body("phone", "Phone number is required").isInt().escape().trim().exists().notEmpty(),
     body("email", "Email is required").isString().escape().trim().exists().notEmpty().isEmail(),
     body("first_name", "First name is required").isString().escape().trim().exists().notEmpty(),
     body("last_name", "Last name is required").isString().escape().trim().exists().notEmpty(),

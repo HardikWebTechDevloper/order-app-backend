@@ -58,19 +58,19 @@ exports.getRoles = async function (request, response) {
     try {
         Role.find({}, function (err, data) {
             if (err) {
-                return response.status(404).send({
+                return response.send({
                     status: false,
                     message: "Something went wrong."
                 })
             } else {
-                return response.status(404).send({
+                return response.send({
                     status: true,
-                    message: "Roles founded.",
+                    message: "Roles found.",
                     data: data
                 })
             }
         });
     } catch (error) {
-        return response.status(400).send({ status: false, message: error })
+        return response.send({ status: false, message: error })
     }
 };

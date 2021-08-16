@@ -161,7 +161,7 @@ exports.createDistributor = async function (request, response) {
         const user = new User(request.body)
         await user.save();
 
-        if (user && user.id) {
+        if (user) {
             return response.send({ status: true, message: 'Distributor has been created successfully.', data: user });
         } else {
             return response.send({ status: false, message: 'Something went wrong with distributor creation.' });
