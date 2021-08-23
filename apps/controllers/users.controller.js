@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
-var mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
+const commonHelper = require('../helpers/common.helper');
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
 
@@ -79,17 +80,22 @@ exports.sendOTP = async function (request, response) {
         if (!user) {
             return response.send({ status: false, message: 'Phone number has not been match with our records.' });
         } else {
-            var otp = Math.floor(100000 + Math.random() * 900000);
+            var otp = await commonHelper.randomNumberGenerator();
             var currentTime = new Date().getTime();
 
-            await User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, function (error, result) {
-                if (error) {
-                    console.log(error);
-                    return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
-                } else {
-                    return response.send({ status: true, message: 'OTP has been sent on your phone number.', otp: otp });
-                }
-            });
+            let isSent = await commonHelper.sendLoginOTP(phone, otp);
+
+            if (isSent === true) {
+                await User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, function (error, result) {
+                    if (error) {
+                        return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
+                    } else {
+                        return response.send({ status: true, message: 'OTP has been sent on your phone number.' });
+                    }
+                });
+            } else {
+                return response.send({ status: false, message: 'Otp failed to send on your phone number. Please try again.' });
+            }
         }
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong" })

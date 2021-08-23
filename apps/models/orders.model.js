@@ -41,7 +41,7 @@ let OrdersSchema = new Schema({
     status_updated_at: {
         type: Date,
         required: false
-    },
+    }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

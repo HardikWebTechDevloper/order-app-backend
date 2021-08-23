@@ -1,19 +1,19 @@
 const Order = require('../models/orders.model');
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
+const Transaction = require('../models/transactions.model');
 
 const moment = require('moment');
 
 /**
- * This function create new order.
+ * create new order
  *
- * @param object
+ * @param amount, deliver_by, pincode, order_details
  * @author  Hardik Gadhiya
  * @version 1.0
  * @since   2021-07-26
  */
 exports.placeOrder = async function (request, response) {
-    // Create a new order
     try {
         var { amount, deliver_by, pincode, order_details } = request.body;
 
@@ -39,6 +39,7 @@ exports.placeOrder = async function (request, response) {
         }
 
         let distributor_id = distributor._id;
+        let distributor_commision = (distributor.distributor_commision) ? parseFloat(distributor.distributor_commision) : 0;
 
         let createOrderObj = {
             amount,
@@ -52,10 +53,31 @@ exports.placeOrder = async function (request, response) {
         await order.save();
 
         if (order) {
-            return response.status(201).send({
-                status: true,
-                message: "Order has been created successfully."
-            });
+            // Calculate distributor commision
+            amount = parseFloat(amount);
+            let commision_amount = amount * (distributor_commision / 100);
+
+            let transactionObj = {
+                order_id: order._id,
+                distributor_id,
+                amount: commision_amount,
+                type: "Credited" // Type: Credited,Debited
+            };
+
+            const transaction = new Transaction(transactionObj);
+            await transaction.save();
+
+            if (transaction) {
+                return response.send({
+                    status: true,
+                    message: "Order has been created successfully."
+                });
+            } else {
+                return response.send({
+                    status: false,
+                    message: "Something went wrong. Transaction has not been created."
+                });
+            }
         } else {
             return response.send({
                 status: false,
