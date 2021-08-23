@@ -10,5 +10,6 @@ const Authentication = require('../middleware/auth');
 router.post('/place', [createOrderValidation], orderController.placeOrder);
 router.post('/get/by/distributor', [getOrderValidation], orderController.getOrders);
 router.post('/update/status', [updateOrderStatusValidation], orderController.updateOrderStatus);
+router.post('/distributor/transactions/get', [getOrderValidation], orderController.getDistributorTransactions);
 
 module.exports = router;

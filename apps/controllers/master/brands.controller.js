@@ -1,4 +1,5 @@
 const Brand = require('../../models/brands.model');
+const DeliveryPartner = require('../../models/delivery_partners.model');
 
 /**
  * This function create new brand.
@@ -118,5 +119,92 @@ exports.updateBrand = async function (request, response) {
         });
     } catch (error) {
         return response.send({ status: false, message: error })
+    }
+};
+
+/**
+ * create delivery partner
+ *
+ * @param object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.createBrandDeliveryPartner = async function (request, response) {
+    try {
+        const { brand_id } = request.body;
+
+        let checkDeliveryPartner = await DeliveryPartner.countDocuments({ brand_id });
+
+        if (checkDeliveryPartner > 0) {
+            return response.send({ status: false, message: 'Delivery partner already exists for this brand.' });
+        } else {
+            let deliveryPartner = new DeliveryPartner(request.body);
+            await deliveryPartner.save();
+
+            if (deliveryPartner) {
+                return response.send({ status: true, message: 'Delivery partner has been saved successfully.', data: deliveryPartner });
+            } else {
+                return response.send({ status: false, message: 'Something went wrong saving the delivery partner.' });
+            }
+        }
+
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+
+/**
+ * Get delivery partner
+ *
+ * @param object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.getBrandDeliveryPartner = async function (request, response) {
+    try {
+        const { brand_id } = request.body;
+
+        let deliveryPartner = await DeliveryPartner.findOne({ brand_id });
+
+        if (deliveryPartner) {
+            return response.send({ status: true, message: 'Delivery partner found.', data: deliveryPartner });
+        } else {
+            return response.send({ status: false, message: 'Delivery partner not found.' });
+        }
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+};
+
+/**
+ * Update delivery partner
+ *
+ * @param object
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+exports.updateBrandDeliveryPartner = async function (request, response) {
+    try {
+        const { id, api_key, partner_name, is_active } = request.body;
+
+        let updateClause = {
+            api_key, partner_name
+        };
+
+        if (is_active == true) {
+            updateClause.is_active = true;
+        } else {
+            updateClause.is_active = false;
+        }
+
+        DeliveryPartner.updateOne({ _id: id }, updateClause, function (err, data) {
+            if (err) {
+                return response.send({ status: false, message: 'Something went wrong updating delivery partner.' });
+            } else {
+                return response.send({ status: true, message: 'Delivery partner has been updated successfully.' });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
     }
 };

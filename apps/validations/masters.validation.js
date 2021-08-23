@@ -63,3 +63,39 @@ exports.createBrands = Validate([
     body("brand_name", "Brand name is required").isString().escape().trim().exists().notEmpty(),
     body("website", "Website is required").isString().escape().trim().exists().notEmpty(),
 ]);
+
+/**
+ * Create Brand Delivery Partner
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ */
+exports.createDeliveryPartnerValidation = Validate([
+    body("brand_id", "Brand id is required").isString().trim().exists().notEmpty(),
+    body("brand_user_id", "Brand user id is required").isString().trim().exists().notEmpty(),
+    body("api_key", "API key is required").isString().trim().exists().notEmpty(),
+    body("partner_name", "Partner name is required").isString().trim().exists().notEmpty(),
+]);
+
+/**
+ * Get Brand Delivery Partner
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ */
+exports.getDeliveryPartnerValidation = Validate([
+    body("brand_id", "Brand id is required").isString().trim().exists().notEmpty()
+]);
+
+/**
+ * Update Brand Delivery Partner
+ * @param {object} req
+ * @param {object} res
+ * @param {function} next
+ */
+exports.updateDeliveryPartnerValidation = Validate([
+    body("id", "Delivery partner id is required").isString().trim().exists().notEmpty(),
+    body("api_key", "API key is required").isString().trim().exists().notEmpty(),
+    body("partner_name", "Partner name is required").isString().trim().exists().notEmpty(),
+    body("is_active", "Is active status is required").isBoolean().trim().exists().notEmpty()
+]);

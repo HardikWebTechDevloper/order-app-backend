@@ -166,3 +166,34 @@ exports.updateOrderStatus = async function (request, response) {
         return response.send({ status: false, message: error })
     }
 };
+
+/**
+ * List Distributo Transactions.
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-07-28
+ */
+exports.getDistributorTransactions = async function (request, response) {
+    try {
+        let { distributor_id } = request.body;
+
+        Transaction.find({ distributor_id: distributor_id }, function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Transaction not found.",
+                })
+            } else {
+                return response.send({
+                    status: true,
+                    message: "Transaction found.",
+                    data: data
+                })
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: error })
+    }
+};
