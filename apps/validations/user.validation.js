@@ -8,7 +8,7 @@ const { body } = require('express-validator');
  * @param {function} next
  */
 exports.sendOTPValidation = Validate([
-    body("phone", "Phone number is required").isString().escape().trim().exists().notEmpty()
+    body("phone", "Phone number is required").trim().exists().notEmpty()
 ]);
 
 /**

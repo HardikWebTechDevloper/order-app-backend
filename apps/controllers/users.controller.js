@@ -83,19 +83,22 @@ exports.sendOTP = async function (request, response) {
             var otp = await commonHelper.randomNumberGenerator();
             var currentTime = new Date().getTime();
 
-            let isSent = await commonHelper.sendLoginOTP(phone, otp);
-
-            if (isSent === true) {
-                await User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, function (error, result) {
-                    if (error) {
-                        return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
-                    } else {
-                        return response.send({ status: true, message: 'OTP has been sent on your phone number.' });
-                    }
-                });
-            } else {
-                return response.send({ status: false, message: 'Otp failed to send on your phone number. Please try again.' });
-            }
+            // Send OTP
+            commonHelper.sendLoginOTP(phone, otp).then(data => {
+                if (data) {
+                    User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, function (error, result) {
+                        if (error) {
+                            return response.send({ status: false, message: 'Something went wrong with update otp.' });
+                        } else {
+                            return response.send({ status: true, message: 'OTP has been sent on your phone number.' });
+                        }
+                    });
+                } else {
+                    return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
+                }
+            }).catch(err => {
+                return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
+            });
         }
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong" })
