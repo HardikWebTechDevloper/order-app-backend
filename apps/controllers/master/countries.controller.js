@@ -38,7 +38,7 @@ exports.createCountry = async function (request, response) {
             })
         }
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
 
@@ -67,6 +67,6 @@ exports.getCountriesList = async function (request, response) {
             }
         });
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };

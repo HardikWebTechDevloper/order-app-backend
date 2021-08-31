@@ -41,7 +41,7 @@ exports.createBrand = async function (request, response) {
             })
         }
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
 
@@ -70,7 +70,7 @@ exports.getBrandsList = async function (request, response) {
             }
         });
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
 
@@ -118,7 +118,7 @@ exports.updateBrand = async function (request, response) {
             }
         });
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
 

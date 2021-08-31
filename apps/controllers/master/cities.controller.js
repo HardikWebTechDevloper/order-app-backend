@@ -38,7 +38,7 @@ exports.createCity = async function (request, response) {
             })
         }
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
 
@@ -69,6 +69,6 @@ exports.getCitiesList = async function (request, response) {
             }
         });
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };

@@ -1,4 +1,7 @@
 const moment = require('moment');
+const mongoose = require('mongoose');
+const MomentRange = require('moment-range');
+const momentR = MomentRange.extendMoment(moment);
 
 const Order = require('../models/orders.model');
 const User = require('../models/user.model');
@@ -115,7 +118,7 @@ exports.getOrders = async function (request, response) {
             }
         });
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
 
@@ -157,7 +160,7 @@ exports.updateOrderStatus = async function (request, response) {
             }
         });
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
 
@@ -188,6 +191,149 @@ exports.getDistributorTransactions = async function (request, response) {
             }
         });
     } catch (error) {
-        return response.send({ status: false, message: error })
+        return response.send({ status: false, message: "Something went wrong." });
     }
 };
+
+/**
+ * List Brand Orders.
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-08-28
+ */
+exports.getBrandOrders = async function (request, response) {
+    try {
+        let { brand_user_id, distributor_ids } = request.body;
+
+        User.find({ brand_user_id: brand_user_id }, { _id: 1 }, function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Distributor has not been found.",
+                })
+            } else {
+                let whereClause = {};
+
+                if (distributor_ids && distributor_ids.length > 0) {
+                    whereClause.distributor_id = distributor_ids;
+                } else {
+                    let distributors = data.map(user => user._id);
+                    whereClause.distributor_id = distributors;
+                }
+
+                Order.find(whereClause, function (err, orders) {
+                    if (err) {
+                        return response.send({
+                            status: false,
+                            message: "Orders has not been found.",
+                        })
+                    } else {
+                        return response.send({
+                            status: true,
+                            message: "Orders found.",
+                            data: orders
+                        })
+                    }
+                });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong." });
+    }
+};
+
+/**
+ * Dashboard.
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-08-28
+ */
+exports.getBrandTotalOrders = async function (request, response) {
+    try {
+        let { brand_user_id } = request.body;
+        let today = moment().format('YYYY-MM-DD');
+
+        let startDate = `${today}T00:00:00.000Z`;
+        let endDate = `${today}T23:59:59.000Z`;
+
+        let monthStartDate = moment().subtract(1, 'month').format("YYYY-MM-DDT00:00:00.000Z");
+        let monthEndDate = moment().format("YYYY-MM-DDT23:59:59.000Z");
+
+        User.find({ brand_user_id: brand_user_id }, { _id: 1 }, async function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Distributor has not been found.",
+                })
+            } else {
+                // Get all distributors
+                let distributors = data.map(user => user._id);
+
+                // Get Total Orders
+                let totalOrders = await Order.find({ distributor_id: distributors }).count();
+
+                // Get today's total orders
+                let totalOrdersOfToday = await Order.find({
+                    distributor_id: distributors,
+                    order_datetime: {
+                        $gte: startDate,
+                        $lt: endDate
+                    }
+                }).count();
+
+                // Get today's total pending orders
+                let totalPendingOrdersOfToday = await Order.find({
+                    distributor_id: distributors,
+                    order_status: "PENDING",
+                    order_datetime: {
+                        $gte: startDate,
+                        $lt: endDate
+                    }
+                }).count();
+
+                // Get today's total Accepted orders
+                let totalAcceptedOrdersOfToday = await Order.find({
+                    distributor_id: distributors,
+                    order_status: "ACCEPTED",
+                    order_datetime: {
+                        $gte: startDate,
+                        $lt: endDate
+                    }
+                }).count();
+
+                let DashboardData = { totalOrders, totalOrdersOfToday, totalPendingOrdersOfToday, totalAcceptedOrdersOfToday };
+
+                Order.aggregate([
+                    {
+                        $match: { // filter to limit to whatever is of importance
+                            // "distributor_id": distributors,
+                            "order_datetime": {
+                                $gte: new Date(monthStartDate),
+                                $lte: new Date(monthEndDate),
+                            }
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: { $dateToString: { format: "%Y-%m-%d", date: "$order_datetime" } }, count: { $sum: 1 }
+                        }
+                    },
+                    { $sort: { _id: -1 } }
+                ]).then(function (data) {
+                    if (data && data.length > 0) {
+                        const range = momentR.range(moment(monthStartDate), moment(monthEndDate));
+                        // console.log(Array.from(range.by('day')))
+                    }
+                    return response.send({ status: true, message: 'Distributor found.', data: data, DashboardData });
+                });
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong." });
+    }
+};
+

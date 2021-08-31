@@ -8,8 +8,8 @@ let OrdersSchema = new Schema({
     },
     order_status: {
         type: String,
-        enum: ['OPEN', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'SCHEDULED', 'DELIVED', 'VIEW', 'RETURN'],
-        default: 'OPEN'
+        enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'SCHEDULED', 'DELIVED', 'VIEW', 'RETURN'],
+        default: 'PENDING'
     },
     amount: {
         type: Number,
@@ -17,8 +17,8 @@ let OrdersSchema = new Schema({
     },
     deliver_by: {
         type: String,
-        enum: ['DUNZO', 'SELF'],
-        default: null
+        enum: ['', 'DUNZO', 'SELF'],
+        default: ''
     },
     pincode: {
         type: Number,
