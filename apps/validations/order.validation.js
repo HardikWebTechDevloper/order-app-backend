@@ -9,9 +9,8 @@ const { body } = require('express-validator');
  */
 exports.createOrderValidation = Validate([
     body("amount", "Amount is required").isInt().escape().trim().exists().notEmpty(),
-    body("deliver_by", "Deliver by is required").isString().escape().trim().exists().notEmpty(),
     body("pincode", "Pincode is required").isString().escape().trim().exists().notEmpty(),
-    body("order_details", "Order details is required").isString().escape().trim().exists().notEmpty()
+    body("order_details", "Order details is required").exists().notEmpty()
 ]);
 
 /**

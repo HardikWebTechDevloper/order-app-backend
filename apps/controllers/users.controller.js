@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const commonHelper = require('../helpers/common.helper');
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
+const DistributorPincode = require('../models/distributor_pincodes.model');
 
 /**
  * Register new user
@@ -17,7 +18,7 @@ exports.signUp = async function (request, response) {
     try {
         const user = new User(request.body)
         await user.save()
-        var token = await user.generateAuthToken();
+        await user.generateAuthToken();
         return response.send({ status: true, message: "User has been registered successfully." })
     } catch (err) {
         return response.send({
@@ -149,7 +150,7 @@ exports.verifyOTP = async function (request, response) {
  */
 exports.createDistributor = async function (request, response) {
     try {
-        const { phone, email } = request.body;
+        const { phone, email, covered_pincode } = request.body;
         let body = request.body;
 
         // Search for a user by phone.
@@ -167,15 +168,31 @@ exports.createDistributor = async function (request, response) {
         body.status = true;
         body.isDeleted = false;
 
+        delete body.covered_pincode;
+
         const user = new User(request.body)
         await user.save();
 
         if (user) {
+            // Store Distributor Pincodes
+            let distributorPincodes = [];
+            let distributor_id = user._id;
+
+            covered_pincode.map(data => {
+                let element = {};
+                element.distributor_id = distributor_id;
+                element.pin_code = data;
+                distributorPincodes.push(element);
+            });
+
+            await DistributorPincode.insertMany(distributorPincodes);
+
             return response.send({ status: true, message: 'Distributor has been created successfully.', data: user });
         } else {
             return response.send({ status: false, message: 'Something went wrong with distributor creation.' });
         }
     } catch (error) {
+        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
@@ -323,7 +340,6 @@ exports.getUsers = async function (request, response) {
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
-
 
 /**
  * Create staff

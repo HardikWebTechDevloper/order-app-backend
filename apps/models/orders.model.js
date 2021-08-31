@@ -18,7 +18,7 @@ let OrdersSchema = new Schema({
     deliver_by: {
         type: String,
         enum: ['DUNZO', 'SELF'],
-        default: 'SELF'
+        default: null
     },
     pincode: {
         type: Number,
