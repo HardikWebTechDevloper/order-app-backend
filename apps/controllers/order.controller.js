@@ -143,6 +143,20 @@ exports.updateOrderStatus = async function (request, response) {
         };
 
         if (order_status === 'ACCEPTED') {
+            if (!staff_user_id) {
+                return response.send({
+                    status: false,
+                    message: "Staff user id is required"
+                })
+            }
+
+            if (!deliver_by) {
+                return response.send({
+                    status: false,
+                    message: "Deliver by is required"
+                })
+            }
+
             updateObj.deliver_by = deliver_by;
             updateObj.staff_id = staff_user_id;
         }
