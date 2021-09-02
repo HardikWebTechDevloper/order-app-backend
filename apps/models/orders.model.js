@@ -8,7 +8,7 @@ let OrdersSchema = new Schema({
     },
     order_status: {
         type: String,
-        enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'SCHEDULED', 'DELIVED', 'VIEW', 'RETURN'],
+        enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'SCHEDULED', 'DELIVERED', 'VIEW', 'RETURN'],
         default: 'PENDING'
     },
     amount: {
@@ -37,6 +37,10 @@ let OrdersSchema = new Schema({
     order_details: {
         type: String,
         required: true
+    },
+    order_otp: {
+        type: Number,
+        required: false
     },
     status_updated_at: {
         type: Date,

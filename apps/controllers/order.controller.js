@@ -1,13 +1,15 @@
-const moment = require('moment');
 const mongoose = require('mongoose');
-const MomentRange = require('moment-range');
-const momentR = MomentRange.extendMoment(moment);
+const moment = require('moment');
+const { extendMoment } = require('moment-range');
 
+const CommonHelper = require('../helpers/common.helper');
 const Order = require('../models/orders.model');
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
 const Transaction = require('../models/transactions.model');
 const DistributorPincode = require('../models/distributor_pincodes.model');
+
+const momentR = extendMoment(moment);
 
 /**
  * create new order
@@ -132,7 +134,7 @@ exports.getOrders = async function (request, response) {
  */
 exports.updateOrderStatus = async function (request, response) {
     try {
-        let { order_id, order_status, deliver_by } = request.body;
+        let { order_id, order_status, deliver_by, staff_user_id } = request.body;
         let currentDateTime = moment().format("YYYY-MM-DD HH:mm:ss");
 
         let updateObj = {
@@ -142,6 +144,7 @@ exports.updateOrderStatus = async function (request, response) {
 
         if (order_status === 'ACCEPTED') {
             updateObj.deliver_by = deliver_by;
+            updateObj.staff_id = staff_user_id;
         }
 
         Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
@@ -260,8 +263,8 @@ exports.getBrandTotalOrders = async function (request, response) {
         let startDate = `${today}T00:00:00.000Z`;
         let endDate = `${today}T23:59:59.000Z`;
 
-        let monthStartDate = moment().subtract(1, 'month').format("YYYY-MM-DDT00:00:00.000Z");
-        let monthEndDate = moment().format("YYYY-MM-DDT23:59:59.000Z");
+        let monthStartDate = moment().subtract(30, 'days').format("YYYY-MM-DD");
+        let monthEndDate = moment().format("YYYY-MM-DD");
 
         User.find({ brand_user_id: brand_user_id }, { _id: 1 }, async function (err, data) {
             if (err) {
@@ -271,7 +274,7 @@ exports.getBrandTotalOrders = async function (request, response) {
                 })
             } else {
                 // Get all distributors
-                let distributors = data.map(user => user._id);
+                let distributors = data.map(user => mongoose.Types.ObjectId(user._id));
 
                 // Get Total Orders
                 let totalOrders = await Order.find({ distributor_id: distributors }).count();
@@ -309,30 +312,175 @@ exports.getBrandTotalOrders = async function (request, response) {
 
                 Order.aggregate([
                     {
-                        $match: { // filter to limit to whatever is of importance
-                            // "distributor_id": distributors,
-                            "order_datetime": {
-                                $gte: new Date(monthStartDate),
-                                $lte: new Date(monthEndDate),
-                            }
+                        "$match": {
+                            "$and": [
+                                {
+                                    "order_datetime": {
+                                        $gte: new Date(monthStartDate + 'T00:00:00.000Z'),
+                                        $lte: new Date(monthEndDate + 'T23:59:59.000Z'),
+                                    }
+                                },
+                                { "distributor_id": { "$in": distributors } }
+                            ]
                         }
                     },
                     {
-                        $group: {
+                        "$group": {
                             _id: { $dateToString: { format: "%Y-%m-%d", date: "$order_datetime" } }, count: { $sum: 1 }
                         }
                     },
-                    { $sort: { _id: -1 } }
-                ]).then(function (data) {
+                    { "$sort": { _id: -1 } }
+                ]).then(async function (data) {
+                    let ChartData = [];
+
                     if (data && data.length > 0) {
-                        const range = momentR.range(moment(monthStartDate), moment(monthEndDate));
-                        // console.log(Array.from(range.by('day')))
+                        monthStartDate = new Date(monthStartDate);
+                        monthEndDate = new Date(monthEndDate);
+
+                        let range = await getDates(new Date(monthStartDate), new Date(monthEndDate));
+
+                        range.forEach(element => {
+                            let date = moment(element).format('YYYY-MM-DD');
+                            let findData = data.find(relement => relement._id == date);
+
+                            let obj = {
+                                date: date,
+                                count: 0
+                            }
+
+                            if (findData) {
+                                obj.count = findData.count;
+                            }
+
+                            ChartData.push(obj);
+                        });
                     }
-                    return response.send({ status: true, message: 'Distributor found.', data: data, DashboardData });
+
+                    return response.send({ status: true, message: 'Distributor found.', ChartData, DashboardData });
                 });
             }
         });
     } catch (error) {
+        return response.send({ status: false, message: "Something went wrong." });
+    }
+};
+
+function getDates(startDate, endDate) {
+    const dates = []
+    let currentDate = startDate;
+
+    const addDays = function (days) {
+        const date = new Date(this.valueOf())
+        date.setDate(date.getDate() + days)
+        return date
+    }
+    while (currentDate <= endDate) {
+        dates.push(currentDate)
+        currentDate = addDays.call(currentDate, 1)
+    }
+
+    return dates
+}
+
+/**
+ * Send Delivery OTP
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-02
+ */
+module.exports.sendDeliveryConfirmationOTP = async (request, response) => {
+    try {
+        let { order_id } = request.body;
+
+        let order = await Order.findOne({ _id: order_id, order_status: "ACCEPTED" });
+
+        if (!order) {
+            return response.send({ status: false, message: "Order has not been found." });
+        }
+
+        let order_details = JSON.parse(order.order_details);
+        let user_name = order_details.Name;
+        let phone = (order_details.Phone) ? order_details.Phone : '9624684020';
+
+        let otp = await CommonHelper.randomNumberGenerator();
+
+        // Send OTP
+        CommonHelper.sendAcceptOrderOTP(user_name, phone, otp).then(data => {
+            if (data) {
+                Order.updateOne({ _id: order_id }, { order_otp: otp }, function (err, data) {
+                    return response.send({
+                        status: true,
+                        message: "OTP has been sent to customer successfully."
+                    })
+                });
+            } else {
+                return response.send({ status: false, message: 'OTP failed to send on customer phone number. Please try again.' });
+            }
+        }).catch(err => {
+            return response.send({ status: false, message: 'OTP failed to send on customer phone number. Please try again.' });
+        });
+    } catch (error) {
+        console.log(error)
+        return response.send({ status: false, message: "Something went wrong." });
+    }
+};
+
+/**
+ * Verify Delivery OTP
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-02
+ */
+module.exports.verifyDeliveryOTP = async (request, response) => {
+    try {
+        let { order_id, order_otp } = request.body;
+
+        let order = await Order.findOne({ _id: order_id, order_status: "ACCEPTED" });
+
+        if (!order) {
+            return response.send({ status: false, message: "Order has not been found." });
+        }
+
+        if (order.order_otp != order_otp) {
+            return response.send({ status: false, message: "Please enter valid OTP code." });
+        }
+
+        Order.updateOne({ _id: order_id }, { order_otp: null, order_status: "DELIVERED" }, async function (error, result) {
+            if (error) {
+                return response.send({ status: false, message: 'Something went wrong with update status.' });
+            } else {
+                let distributor_id = order.distributor_id;
+
+                // Find distributor & Calculate commision
+                let distributor = await User.findOne({ _id: distributor_id });
+
+                let amount = parseFloat(order.amount);
+
+                let distributor_commision = (distributor.distributor_commision) ? parseFloat(distributor.distributor_commision) : 0;
+                let commision_amount = amount * (distributor_commision / 100);
+
+                let transactionObj = {
+                    order_id: order._id,
+                    distributor_id,
+                    amount: commision_amount,
+                    type: "Credited" // Type: Credited,Debited
+                };
+
+                const transaction = new Transaction(transactionObj);
+                await transaction.save();
+
+                return response.send({
+                    status: true,
+                    message: "Order has been delivered successfully."
+                });
+            }
+        });
+    } catch (error) {
+        console.log(error)
         return response.send({ status: false, message: "Something went wrong." });
     }
 };

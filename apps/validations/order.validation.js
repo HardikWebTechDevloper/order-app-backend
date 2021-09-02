@@ -37,3 +37,12 @@ exports.updateOrderStatusValidation = Validate([
 exports.brandValidation = Validate([
     body("brand_user_id", "Brand user id is required").isString().escape().trim().exists().notEmpty(),
 ]);
+
+exports.orderValidation = Validate([
+    body("order_id", "Order id is required").isString().escape().trim().exists().notEmpty(),
+]);
+
+exports.verifyDeliveryOTPValidation = Validate([
+    body("order_id", "Order id is required").isString().escape().trim().exists().notEmpty(),
+    body("order_otp", "Order id is required").isInt().escape().trim().exists().notEmpty(),
+]);
