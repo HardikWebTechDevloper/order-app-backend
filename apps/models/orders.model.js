@@ -8,7 +8,7 @@ let OrdersSchema = new Schema({
     },
     order_status: {
         type: String,
-        enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'SCHEDULED', 'DELIVERED', 'VIEW', 'RETURN'],
+        enum: ['PENDING', 'ACCEPTED', 'REJECTED_BY', 'NOT_ACCEPTED_BY', 'SCHEDULED', 'DELIVERED', 'RETURN'],
         default: 'PENDING'
     },
     amount: {
@@ -45,6 +45,14 @@ let OrdersSchema = new Schema({
     status_updated_at: {
         type: Date,
         required: false
+    },
+    reason_for_return_order: {
+        type: String,
+        default: null
+    },
+    expected_delivery_time: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

@@ -260,7 +260,16 @@ exports.getDistributors = async function (request, response) {
                     "first_name": 1,
                     "last_name": 1,
                     "phone": 1,
+                    "email": 1,
+                    "role_id": 1,
+                    "city_id": 1,
                     "city.city_name": 1,
+                    "state_id": 1,
+                    "country_id": 1,
+                    "pin_code": 1,
+                    "distributor_commision": 1,
+                    "distributor_tax_details": 1,
+                    "status": 1,
                 }
             },
         ]).then(function (data) {
