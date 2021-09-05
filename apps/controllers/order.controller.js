@@ -191,22 +191,103 @@ exports.updateOrderStatus = async function (request, response) {
  */
 exports.getDistributorTransactions = async function (request, response) {
     try {
-        let { distributor_id } = request.body;
+        let { distributor_id, brand_user_id } = request.body;
 
-        Transaction.find({ distributor_id: distributor_id }, function (err, data) {
-            if (err) {
-                return response.send({
-                    status: false,
-                    message: "Transaction not found.",
-                })
-            } else {
-                return response.send({
-                    status: true,
-                    message: "Transaction found.",
-                    data: data
-                })
-            }
-        });
+        if (distributor_id) {
+            Transaction.find({ distributor_id: distributor_id }, function (err, raws) {
+                if (err) {
+                    return response.send({
+                        status: false,
+                        message: "Transaction not found.",
+                    })
+                } else {
+                    let results = [];
+
+                    if (raws && raws.length > 0) {
+                        raws.forEach(data => {
+                            let element = {};
+                            let distributor = data.distributor_id;
+                            let distributor_name = `${distributor.first_name} ${distributor.last_name}`;
+                            let distributor_id = distributor._id;
+
+                            element._id = data._id;
+                            element.order_id = data.order_id;
+                            element.type = data.type;
+                            element.amount = data.amount;
+                            element.distributor_name = distributor_name;
+                            element.distributor_id = distributor_id;
+                            element.created_at = data.created_at;
+                            element.updated_at = data.updated_at;
+
+                            results.push(element);
+                        });
+                    }
+
+                    return response.send({
+                        status: true,
+                        message: "Transaction found.",
+                        data: results
+                    })
+                }
+            })
+                .sort({ created_at: -1 })
+                .populate('distributor_id');
+        } else {
+            User.find({ brand_user_id: brand_user_id }, { _id: 1 }, function (err, data) {
+                if (err) {
+                    return response.send({
+                        status: false,
+                        message: "Distributor has not been found.",
+                    })
+                } else {
+                    let distributors = data.map(user => user._id);
+                    let whereClause = {
+                        distributor_id: distributors
+                    };
+
+                    Transaction
+                        .find(whereClause)
+                        .sort({ created_at: -1 })
+                        .populate('distributor_id')
+                        .exec(function (err, raws) {
+                            if (err) {
+                                return response.send({
+                                    status: false,
+                                    message: "Transaction not found.",
+                                })
+                            } else {
+                                let results = [];
+
+                                if (raws && raws.length > 0) {
+                                    raws.forEach(data => {
+                                        let element = {};
+                                        let distributor = data.distributor_id;
+                                        let distributor_name = `${distributor.first_name} ${distributor.last_name}`;
+                                        let distributor_id = distributor._id;
+
+                                        element._id = data._id;
+                                        element.order_id = data.order_id;
+                                        element.type = data.type;
+                                        element.amount = data.amount;
+                                        element.distributor_name = distributor_name;
+                                        element.distributor_id = distributor_id;
+                                        element.created_at = data.created_at;
+                                        element.updated_at = data.updated_at;
+
+                                        results.push(element);
+                                    });
+                                }
+
+                                return response.send({
+                                    status: true,
+                                    message: "Transaction found.",
+                                    data: results
+                                })
+                            }
+                        });
+                }
+            });
+        }
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong." });
     }
@@ -253,7 +334,7 @@ exports.getBrandOrders = async function (request, response) {
                             data: orders
                         })
                     }
-                });
+                }).sort({ order_datetime: -1 });
             }
         });
     } catch (error) {

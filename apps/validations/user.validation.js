@@ -59,7 +59,7 @@ exports.updateDistributorValidation = Validate([
     body("city_id", "City id is required").isString().escape().trim().exists().notEmpty(),
     body("state_id", "State id is required").isString().escape().trim().exists().notEmpty(),
     body("country_id", "Country id is required").isString().escape().trim().exists().notEmpty(),
-    body("pin_code", "Pin code is required").isString().escape().trim().exists().notEmpty(),
+    body("pin_code", "Pin code is required").exists().notEmpty(),
     body("distributor_commision", "Distributor commision is required").isInt().escape().trim().exists().notEmpty(),
     body("distributor_tax_details", "Distributor tax details is required").isString().escape().trim().exists().notEmpty(),
 ]);

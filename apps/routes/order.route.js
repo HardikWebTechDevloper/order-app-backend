@@ -10,7 +10,7 @@ const Authentication = require('../middleware/auth');
 router.post('/place', [createOrderValidation], orderController.placeOrder);
 router.post('/get/by/distributor', [getOrderValidation], orderController.getOrders);
 router.post('/update/status', [updateOrderStatusValidation], orderController.updateOrderStatus);
-router.post('/distributor/transactions/get', [getOrderValidation], orderController.getDistributorTransactions);
+router.post('/distributor/transactions/get', [], orderController.getDistributorTransactions);
 router.post('/brand/get', [brandValidation], orderController.getBrandOrders);
 router.post('/report', [brandValidation], orderController.getBrandTotalOrders);
 router.post('/send/delivery/otp', [orderValidation], orderController.sendDeliveryConfirmationOTP);

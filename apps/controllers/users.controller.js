@@ -444,3 +444,26 @@ async function getRoleIdByRoleName(role_name) {
     let role = await Role.findOne({ role_name: role_name });
     return role;
 }
+
+/**
+ * Get User By Id
+ *
+ * @param user_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+module.exports.getUserById = async function (request, response) {
+    try {
+        let { user_id } = request.body;
+
+        let user = await User.findOne({ _id: user_id });
+
+        if (user) {
+            return response.send({ status: true, data: user })
+        } else {
+            return response.send({ status: false, message: "User details has not been found." })
+        }
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+}
