@@ -129,14 +129,31 @@ exports.updateBrand = async function (request, response) {
  * @author  Hardik Gadhiya
  * @version 1.0
  */
-exports.createBrandDeliveryPartner = async function (request, response) {
+exports.manageBrandDeliveryPartner = async function (request, response) {
     try {
-        const { brand_id } = request.body;
+        const { brand_id, api_key, partner_name, is_active } = request.body;
 
         let checkDeliveryPartner = await DeliveryPartner.countDocuments({ brand_id });
 
         if (checkDeliveryPartner > 0) {
-            return response.send({ status: false, message: 'Delivery partner already exists for this brand.' });
+            let updateClause = {
+                api_key, 
+                partner_name
+            };
+
+            if (is_active == true) {
+                updateClause.is_active = true;
+            } else {
+                updateClause.is_active = false;
+            }
+
+            DeliveryPartner.updateOne({ brand_id: brand_id }, updateClause, function (err, data) {
+                if (err) {
+                    return response.send({ status: false, message: 'Something went wrong updating delivery partner.' });
+                } else {
+                    return response.send({ status: true, message: 'Delivery partner has been updated successfully.' });
+                }
+            });
         } else {
             let deliveryPartner = new DeliveryPartner(request.body);
             await deliveryPartner.save();
@@ -149,6 +166,7 @@ exports.createBrandDeliveryPartner = async function (request, response) {
         }
 
     } catch (error) {
+        console.log(error);
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
