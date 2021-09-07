@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const moment = require('moment');
-const { extendMoment } = require('moment-range');
+const momentTZ = require('moment-timezone');
+const asyncL = require('async');
 
 const CommonHelper = require('../helpers/common.helper');
 const Order = require('../models/orders.model');
@@ -8,8 +9,6 @@ const User = require('../models/user.model');
 const Role = require('../models/roles.model');
 const Transaction = require('../models/transactions.model');
 const DistributorPincode = require('../models/distributor_pincodes.model');
-
-const momentR = extendMoment(moment);
 
 /**
  * create new order
@@ -517,7 +516,6 @@ module.exports.sendDeliveryConfirmationOTP = async (request, response) => {
             return response.send({ status: false, message: 'OTP failed to send on customer phone number. Please try again.' });
         });
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong." });
     }
 };
@@ -575,8 +573,46 @@ module.exports.verifyDeliveryOTP = async (request, response) => {
             }
         });
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong." });
     }
 };
 
+/**
+ * Send Delivery OTP
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-02
+ */
+module.exports.rejectUnApprovedOrders = async () => {
+    try {
+        console.log("✓ CRON Started");
+        let now = moment().utcOffset("+05:30");
+        let currentDate = moment().utcOffset("+05:30").format('YYYY-MM-DD');
+
+        let orders = await Order.find({ order_status: "PENDING" });
+
+        asyncL.each(orders, async (order, callback) => {
+            let orderDate = moment(order.order_datetime).utcOffset("+05:30").format("YYYY-MM-DD");
+
+            if (orderDate == currentDate) {
+                let end = moment(order.order_datetime).utcOffset("+05:30");
+                let dif = moment.duration(now.diff(end));
+                let minutes = (dif.hours() * 60) + dif.minutes();
+
+                if (minutes > 60) {
+                    await Order.updateOne({ _id: order._id }, { order_status: "NOT_ACCEPTED_BY" });
+                }
+                callback();
+            } else if (orderDate < currentDate) {
+                await Order.updateOne({ _id: order._id }, { order_status: "NOT_ACCEPTED_BY" });
+                callback();
+            }
+        }, async (err) => {
+            console.log("✘ CRON Ended");
+        });
+    } catch (error) {
+        console.log(error);
+    }
+};

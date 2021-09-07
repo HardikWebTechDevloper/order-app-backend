@@ -3,7 +3,10 @@ const bodyParser = require('body-parser');
 const fileUpload = require("express-fileupload");
 const cors = require('cors');
 const mongoose = require('mongoose');
+const cron = require('node-cron');
+
 const OrderStatus = require('./apps/models/order_statuses.model');
+const { rejectUnApprovedOrders } = require('./apps/controllers/order.controller');
 
 // routes
 const routes = require('./apps/routes/index.route');
@@ -30,12 +33,13 @@ db.once('connected', function (err) {
         OrderStatus.find({}, function (err, data) {
             if (!err && data && data.length === 0) {
                 var orderStatusObj = [
-                    { status_name: "Open" },
-                    { status_name: "Return" },
-                    { status_name: "Cancel" },
-                    { status_name: "View" },
-                    { status_name: "Scheduled" },
-                    { status_name: "Delivered" },
+                    { status_name: "PENDING" },
+                    { status_name: "ACCEPTED" },
+                    { status_name: "REJECTED_BY" },
+                    { status_name: "NOT_ACCEPTED_BY" },
+                    { status_name: "SCHEDULED" },
+                    { status_name: "DELIVERED" },
+                    { status_name: "RETURN" },
                 ];
 
                 OrderStatus.insertMany(orderStatusObj, forceServerObjectId = true, function (err, data) {
@@ -57,7 +61,9 @@ app.use(fileUpload());
 app.use(express.static(__dirname + '/public'));
 app.use(cors());
 
-app.use('/api/v1', routes)
+app.use('/api/v1', routes);
+
+cron.schedule('* * * * *', rejectUnApprovedOrders);
 
 app.listen(port, () => {
     console.log('✓ Server is up and running on port number ' + port);
