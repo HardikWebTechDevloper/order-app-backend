@@ -17,5 +17,6 @@ router.post('/staff/get', [getStaffValidation], usersController.getStaffList);
 router.post('/staff/update', [updateStaffValidation], usersController.updateStaff);
 router.post('/delete', [deleteUser], usersController.deleteUser);
 router.post('/get/by/id', [deleteUser], usersController.getUserById);
+router.post('/get/pincodes', [deleteUser], usersController.getDistributorPincodes);
 
 module.exports = router;

@@ -179,10 +179,12 @@ exports.createDistributor = async function (request, response) {
             let distributor_id = user._id;
 
             covered_pincode.map(data => {
-                let element = {};
-                element.distributor_id = distributor_id;
-                element.pin_code = data;
-                distributorPincodes.push(element);
+                if (data && data != '') {
+                    let element = {};
+                    element.distributor_id = distributor_id;
+                    element.pin_code = data;
+                    distributorPincodes.push(element);
+                }
             });
 
             await DistributorPincode.insertMany(distributorPincodes);
@@ -192,7 +194,6 @@ exports.createDistributor = async function (request, response) {
             return response.send({ status: false, message: 'Something went wrong with distributor creation.' });
         }
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
@@ -206,15 +207,46 @@ exports.createDistributor = async function (request, response) {
  */
 exports.updateDistributor = async function (request, response) {
     try {
-        const { user_id } = request.body;
+        const { user_id, covered_pincode } = request.body;
         const body = request.body;
 
         delete body.user_id;
+        delete body.covered_pincode;
 
-        User.updateOne({ _id: user_id }, body, function (err, data) {
+        User.updateOne({ _id: user_id }, body, async function (err, data) {
             if (err) {
                 return response.send({ status: false, message: 'Distributor has not been updated.' });
             } else {
+                let getPincodes = await DistributorPincode.find({ distributor_id: user_id });
+
+                if (getPincodes && getPincodes.length > 0) {
+                    //  Delete
+                    getPincodes.forEach(async (data) => {
+                        let pincode = covered_pincode.find(element => data.pin_code == element);
+
+                        if (!pincode && pincode == undefined) {
+                            await DistributorPincode.remove({
+                                distributor_id: user_id,
+                                pin_code: data.pin_code
+                            });
+                        }
+                    });
+
+                    // Insert 
+                    covered_pincode.forEach(async (element) => {
+                        let pincode = getPincodes.find(data => data.pin_code == element);
+
+                        if (!pincode && pincode == undefined) {
+                            let createPincode = new DistributorPincode({
+                                distributor_id: user_id,
+                                pin_code: element
+                            });
+
+                            await createPincode.save();
+                        }
+                    });
+                }
+
                 return response.send({ status: true, message: 'Distributor has been updated successfully.' });
             }
         });
@@ -462,6 +494,29 @@ module.exports.getUserById = async function (request, response) {
             return response.send({ status: true, data: user })
         } else {
             return response.send({ status: false, message: "User details has not been found." })
+        }
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong" })
+    }
+}
+
+/**
+ * Get Distributo Pincodes
+ *
+ * @param user_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ */
+module.exports.getDistributorPincodes = async function (request, response) {
+    try {
+        let { user_id } = request.body;
+
+        let pincodes = await DistributorPincode.find({ distributor_id: user_id }, { pin_code: 1 });
+
+        if (pincodes && pincodes.length > 0) {
+            return response.send({ status: true, data: pincodes })
+        } else {
+            return response.send({ status: false, message: "Pin codes has not been found." })
         }
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong" })
