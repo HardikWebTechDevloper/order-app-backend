@@ -111,7 +111,7 @@ exports.getOrders = async function (request, response) {
 exports.updateOrderStatus = async function (request, response) {
     try {
         let { order_id, order_status, deliver_by, staff_user_id } = request.body;
-        let currentDateTime = moment().format("YYYY-MM-DD HH:mm:ss");
+        let currentDateTime = moment().utcOffset("+05:30").format("YYYY-MM-DD HH:mm:ss");
 
         let updateObj = {
             order_status: order_status,
@@ -329,13 +329,13 @@ exports.getBrandOrders = async function (request, response) {
 exports.getBrandTotalOrders = async function (request, response) {
     try {
         let { brand_user_id } = request.body;
-        let today = moment().format('YYYY-MM-DD');
+        let today = moment().utcOffset("+05:30").format('YYYY-MM-DD');
 
         let startDate = `${today}T00:00:00.000Z`;
         let endDate = `${today}T23:59:59.000Z`;
 
-        let monthStartDate = moment().subtract(30, 'days').format("YYYY-MM-DD");
-        let monthEndDate = moment().format("YYYY-MM-DD");
+        let monthStartDate = moment().utcOffset("+05:30").format("YYYY-MM-01");
+        let monthEndDate = moment().utcOffset("+05:30").format("YYYY-MM-DD");
 
         User.find({ brand_user_id: brand_user_id }, { _id: 1 }, async function (err, data) {
             if (err) {
