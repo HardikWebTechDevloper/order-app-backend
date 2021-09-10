@@ -11,7 +11,6 @@ const { rejectUnApprovedOrders } = require('./apps/controllers/order.controller'
 // routes
 const routes = require('./apps/routes/index.route');
 
-
 //Setup enviroment file
 require('dotenv').config({ path: __dirname + '/.env' })
 var port = process.env['PORT'];
@@ -25,7 +24,7 @@ mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
 
-db.once('connected', function (err) {
+db.once('connected', async function (err) {
     if (err) {
         console.error("✘ DB Connection Failed.", err);
     } else {
@@ -57,7 +56,6 @@ db.on('error', console.error.bind(console, '✘ MongoDB connection error:'));
 // parse requests of content-type - application/json
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(fileUpload());
 app.use(express.static(__dirname + '/public'));
 app.use(cors());
 

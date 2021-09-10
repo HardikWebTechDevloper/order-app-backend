@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const axios = require('axios');
 
+//Setup enviroment file
+require('dotenv').config();
+
 /**
  * This function create dynamic schema in mongo
  *
@@ -61,6 +64,35 @@ module.exports.sendAcceptOrderOTP = (user_name, phone, otp) => {
 
     // Make a request for a user with a given ID
     const promise = axios.get(url);
+    const dataPromise = promise.then((response) => response.data);
+
+    return dataPromise;
+}
+
+/** 
+ * Send OTP for login and authentication
+ **/
+module.exports.generateDunzoToken = () => {
+    let hostName = process.env.HOST_NAME;
+    let ClientId = process.env.CLIENT_ID;
+    let ClientPassword = process.env.CLIENT_PASSWORD;
+
+    console.log(hostName, ClientId, ClientPassword)
+
+    // Make a request for a user with a given ID
+    const promise = axios({
+        url: '/api/v1/token',
+        method: 'GET',
+        baseUrl: hostName,
+
+        // `headers` are custom headers to be sent
+        headers: {
+            'client-id': ClientId,
+            'client-secret': ClientPassword,
+            'Content-Type': 'application/json',
+            'Accept-Language': 'en_US'
+        },
+    });
     const dataPromise = promise.then((response) => response.data);
 
     return dataPromise;

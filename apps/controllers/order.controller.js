@@ -1,7 +1,10 @@
 const mongoose = require('mongoose');
 const moment = require('moment');
-const momentTZ = require('moment-timezone');
 const asyncL = require('async');
+
+const path = require("path");
+const fs = require('fs');
+const formidable = require('formidable');
 
 const CommonHelper = require('../helpers/common.helper');
 const Order = require('../models/orders.model');
@@ -50,32 +53,6 @@ exports.placeOrder = async function (request, response) {
                 status: true,
                 message: "Order has been created successfully."
             });
-            // // Calculate distributor commision
-            // let distributor_commision = (distributor.distributor_commision) ? parseFloat(distributor.distributor_commision) : 0;
-            // amount = parseFloat(amount);
-            // let commision_amount = amount * (distributor_commision / 100);
-
-            // let transactionObj = {
-            //     order_id: order._id,
-            //     distributor_id,
-            //     amount: commision_amount,
-            //     type: "Credited" // Type: Credited,Debited
-            // };
-
-            // const transaction = new Transaction(transactionObj);
-            // await transaction.save();
-
-            // if (transaction) {
-            //     return response.send({
-            //         status: true,
-            //         message: "Order has been created successfully."
-            //     });
-            // } else {
-            //     return response.send({
-            //         status: false,
-            //         message: "Something went wrong. Transaction has not been created."
-            //     });
-            // }
         } else {
             return response.send({
                 status: false,
@@ -473,7 +450,7 @@ function getDates(startDate, endDate) {
         currentDate = addDays.call(currentDate, 1)
     }
 
-    return dates
+    return dates;
 }
 
 /**
@@ -578,6 +555,85 @@ module.exports.verifyDeliveryOTP = async (request, response) => {
 };
 
 /**
+ * Verify Delivery OTP
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-02
+ */
+module.exports.verifyDeliveryBySignature = async (request, response, next) => {
+    try {
+        // Upload file
+        const form = formidable.IncomingForm();
+
+        form.parse(request, async (err, fields, files) => {
+            if (err) {
+                return response.send({ status: false, message: 'Something went wrong with update status.', error: err });
+            } else {
+                let order_id = fields.order_id;
+
+                if (!order_id) {
+                    return response.send({ status: false, message: "Order id is required." });
+                }
+
+                // Check order
+                let order = await Order.findOne({ _id: order_id, order_status: "ACCEPTED" });
+                if (!order) {
+                    return response.send({ status: false, message: "Order has not been found." });
+                }
+
+                let fileName = files.signature.name;
+                let oldPath = files.signature.path;
+                let newPath = path.join(__dirname, '../../', 'uploads') + '/' + fileName;
+                let rawData = fs.readFileSync(oldPath);
+
+                fs.writeFile(newPath, rawData, async function (err) {
+                    if (err) {
+                        return response.send({ status: false, message: 'Something went wrong with update status.', error: err });
+                    } else {
+                        await fs.unlinkSync(oldPath);
+
+                        Order.updateOne({ _id: order_id }, { customer_signature_attachment: fileName, order_status: "DELIVERED" }, async function (error, result) {
+                            if (error) {
+                                return response.send({ status: false, message: 'Something went wrong with update status.' });
+                            } else {
+                                let distributor_id = order.distributor_id;
+
+                                // Find distributor & Calculate commision
+                                let distributor = await User.findOne({ _id: distributor_id });
+
+                                let amount = parseFloat(order.amount);
+
+                                let distributor_commision = (distributor.distributor_commision) ? parseFloat(distributor.distributor_commision) : 0;
+                                let commision_amount = amount * (distributor_commision / 100);
+
+                                let transactionObj = {
+                                    order_id: order._id,
+                                    distributor_id,
+                                    amount: commision_amount,
+                                    type: "Credited" // Type: Credited,Debited
+                                };
+
+                                const transaction = new Transaction(transactionObj);
+                                await transaction.save();
+
+                                return response.send({
+                                    status: true,
+                                    message: "Order has been delivered successfully."
+                                });
+                            }
+                        });
+                    }
+                })
+            }
+        })
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong.", error });
+    }
+};
+
+/**
  * Send Delivery OTP
  *
  * @param order_id
@@ -614,5 +670,48 @@ module.exports.rejectUnApprovedOrders = async () => {
         });
     } catch (error) {
         console.log(error);
+    }
+};
+
+/**
+ * Update Order's Schedule and Address Details
+ *
+ * @param order_id, order_status, expected_delivery_time, address_details
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-02
+ */
+module.exports.updateOrderScheduleByDistributor = async (request, response) => {
+    try {
+        let { order_id, order_status, expected_delivery_time, address_details } = request.body;
+        expected_delivery_time = moment(expected_delivery_time).utcOffset("+05:30").format('YYYY-MM-DD HH:mm:ss');
+        address_details = JSON.stringify(address_details);
+
+        let order = await Order.findOne({ _id: order_id, order_status: "ACCEPTED" });
+
+        if (!order) {
+            return response.send({ status: false, message: "Order has not been found." });
+        }
+
+        Order.updateOne({ _id: order_id }, { order_status, expected_delivery_time, address_details }, function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Something went wrong with schedule order.",
+                    error: err
+                })
+            } else {
+                return response.send({
+                    status: true,
+                    message: "Order has been scheduled successfully."
+                })
+            }
+        });
+    } catch (err) {
+        return response.send({
+            status: false,
+            message: "Something went wrong with schedule order.",
+            error: err
+        })
     }
 };

@@ -53,7 +53,15 @@ let OrdersSchema = new Schema({
     expected_delivery_time: {
         type: Date,
         default: null
-    }
+    },
+    address_details: {
+        type: String,
+        required: false
+    },
+    customer_signature_attachment: {
+        type: String,
+        required: false
+    },
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

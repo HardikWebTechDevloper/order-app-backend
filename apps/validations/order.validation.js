@@ -46,3 +46,10 @@ exports.verifyDeliveryOTPValidation = Validate([
     body("order_id", "Order id is required").isString().escape().trim().exists().notEmpty(),
     body("order_otp", "Order id is required").isInt().escape().trim().exists().notEmpty(),
 ]);
+
+exports.updateOrderScheduleByDistributorValidation = Validate([
+    body("order_id", "Order id is required").isString().escape().trim().exists().notEmpty(),
+    body("order_status", "Order status is required").isString().escape().trim().exists().notEmpty(),
+    body("expected_delivery_time", "Expected delivery time is required").isString().escape().trim().exists().notEmpty(),
+    body("address_details", "Address details id is required").exists().notEmpty(),
+]);
