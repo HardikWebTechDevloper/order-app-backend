@@ -101,6 +101,42 @@ exports.getOrders = async function (request, response) {
 };
 
 /**
+ * Get orders.
+ *
+ * @param staff_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-07-28
+ */
+exports.getStaffOrders = async function (request, response) {
+    try {
+        let { staff_id, order_status } = request.body;
+        let whereClause = { staff_id };
+
+        if (order_status) {
+            whereClause.order_status = order_status;
+        }
+
+        Order.find(whereClause, function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Something went wrong."
+                })
+            } else {
+                return response.send({
+                    status: true,
+                    message: "Order Found.",
+                    data: data
+                })
+            }
+        });
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong." });
+    }
+};
+
+/**
  * Accept Order.
  *
  * @param order_id
