@@ -38,6 +38,11 @@ let OrdersSchema = new Schema({
         type: String,
         required: true
     },
+    delivery_details: {
+        type: String,
+        required: false,
+        default: null
+    },
     order_otp: {
         type: Number,
         required: false

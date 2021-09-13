@@ -7,6 +7,8 @@ const fs = require('fs');
 const formidable = require('formidable');
 
 const CommonHelper = require('../helpers/common.helper');
+const { generateDunzoToken, createOrderDeliveryInDunzo } = CommonHelper;
+
 const Order = require('../models/orders.model');
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
@@ -149,19 +151,21 @@ exports.updateOrderStatus = async function (request, response) {
         let { order_id, order_status, deliver_by, staff_user_id } = request.body;
         let currentDateTime = moment().utcOffset("+05:30").format("YYYY-MM-DD HH:mm:ss");
 
+        let order = await Order.findOne({ _id: order_id });
+
+        if (!order) {
+            return response.send({
+                status: false,
+                message: "Order has not been found."
+            })
+        }
+
         let updateObj = {
             order_status: order_status,
             status_updated_at: currentDateTime
         };
 
         if (order_status === 'ACCEPTED') {
-            if (!staff_user_id) {
-                return response.send({
-                    status: false,
-                    message: "Staff user id is required"
-                })
-            }
-
             if (!deliver_by) {
                 return response.send({
                     status: false,
@@ -170,28 +174,127 @@ exports.updateOrderStatus = async function (request, response) {
             }
 
             if (deliver_by == 'SELF') {
+                if (!staff_user_id) {
+                    return response.send({
+                        status: false,
+                        message: "Staff user id is required"
+                    })
+                }
+
                 updateObj.deliver_by = deliver_by;
                 updateObj.staff_id = staff_user_id;
+
+                Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
+                    if (err) {
+                        return response.send({
+                            status: false,
+                            message: "Something went wrong. Order status has not been updated."
+                        })
+                    } else {
+                        let actionName = order_status.toLowerCase();
+
+                        return response.send({
+                            status: true,
+                            message: "Order has been " + actionName + " successfully."
+                        })
+                    }
+                });
             } else if (deliver_by == 'DUNZO') {
                 let { pickup_location, drop_location } = request.body;
+                let deliveryDateTime = moment().utcOffset("+05:30").add(1, 'hour').format("YYYY-MM-DD HH:mm:ss");
+
+                let expected_delivery_time = (order.expected_delivery_time) ?
+                    moment(order.expected_delivery_time).utcOffset("+05:30").format("YYYY-MM-DD HH:mm:ss") :
+                    deliveryDateTime;
+                let unixTime = moment(expected_delivery_time).unix();
+
+                await generateDunzoToken().then(async (data) => {
+                    if (data && data.token) {
+                        let token = data.token;
+
+                        let locationObj = {
+                            "pickup_details": [
+                                {
+                                    "lat": parseFloat(pickup_location.coordinates.lat),
+                                    "lng": parseFloat(pickup_location.coordinates.lng),
+                                    "reference_id": "drop-ref1"
+                                }
+                            ],
+                            "optimised_route": true,
+                            "drop_details": [
+                                {
+                                    "lat": parseFloat(drop_location.coordinates.lat),
+                                    "lng": parseFloat(drop_location.coordinates.lng),
+                                    "reference_id": "drop-ref1"
+                                }
+                            ],
+                            "delivery_type": "SCHEDULED",
+                            "schedule_time": parseInt(unixTime)
+                        };
+
+                        await createOrderDeliveryInDunzo(token, locationObj).then(result => {
+                            if (result.code) {
+                                return response.send({
+                                    status: false,
+                                    message: result.message
+                                })
+                            } else {
+                                let delivery_details = result;
+                                delivery_details = JSON.stringify(delivery_details);
+
+                                let orderObj = {
+                                    delivery_details,
+                                    order_status,
+                                    deliver_by
+                                };
+
+                                Order.updateOne({ _id: order_id }, orderObj, async function (err, data) {
+                                    if (err) {
+                                        return response.send({
+                                            status: false,
+                                            message: "Something went wrong. Order status has not been updated."
+                                        })
+                                    } else {
+                                        let actionName = order_status.toLowerCase();
+
+                                        return response.send({
+                                            status: true,
+                                            message: "Order has been " + actionName + " successfully."
+                                        })
+                                    }
+                                });
+                            }
+                        }).catch(error => {
+                            return response.send({
+                                status: false,
+                                message: "Something went wrong with generate token."
+                            })
+                        })
+                    } else {
+                        return response.send({
+                            status: false,
+                            message: "Something went wrong with generate token."
+                        })
+                    }
+                });
             }
+        } else {
+            Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
+                if (err) {
+                    return response.send({
+                        status: false,
+                        message: "Something went wrong. Order status has not been updated."
+                    })
+                } else {
+                    let actionName = order_status.toLowerCase();
+
+                    return response.send({
+                        status: true,
+                        message: "Order has been " + actionName + " successfully."
+                    })
+                }
+            });
         }
-
-        Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
-            if (err) {
-                return response.send({
-                    status: false,
-                    message: "Something went wrong. Order status has not been updated."
-                })
-            } else {
-                let actionName = order_status.toLowerCase();
-
-                return response.send({
-                    status: true,
-                    message: "Order has been " + actionName + " successfully."
-                })
-            }
-        });
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong." });
     }

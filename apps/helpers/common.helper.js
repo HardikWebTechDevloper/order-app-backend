@@ -75,8 +75,8 @@ module.exports.sendAcceptOrderOTP = (user_name, phone, otp) => {
 module.exports.generateDunzoToken = () => {
     try {
         let hostName = process.env.HOST_NAME;
-        let ClientId = process.env.CLIENT_ID;
-        let ClientPassword = process.env.CLIENT_PASSWORD;
+        let clientId = process.env.CLIENT_ID;
+        let clientPassword = process.env.CLIENT_PASSWORD;
 
         // Make a request for a user with a given ID
         const promise = axios({
@@ -85,8 +85,8 @@ module.exports.generateDunzoToken = () => {
 
             // `headers` are custom headers to be sent
             headers: {
-                'client-id': ClientId,
-                'client-secret': ClientPassword,
+                'client-id': clientId,
+                'client-secret': clientPassword,
                 'Content-Type': 'application/json',
                 'Accept-Language': 'en_US'
             },
@@ -102,9 +102,9 @@ module.exports.generateDunzoToken = () => {
 /** 
  * Create Deivery Order in DUNZO
  **/
-module.exports.createOrderDeliveryInDunzo = (token, order_details) => {
+module.exports.createOrderDeliveryInDunzo = (token, locationObj) => {
     try {
-        let ClientId = process.env.CLIENT_ID;
+        let clientId = process.env.CLIENT_ID;
         let hostName = process.env.HOST_NAME;
 
         // Make a request for a user with a given ID
@@ -114,31 +114,37 @@ module.exports.createOrderDeliveryInDunzo = (token, order_details) => {
 
             // `headers` are custom headers to be sent
             headers: {
-                'client-id': ClientId,
+                'client-id': clientId,
                 'Authorization': token,
                 'Content-Type': 'application/json',
                 'Accept-Language': 'en_US'
             },
 
             // `Data`
-            data: {
-                "pickup_details": [
-                    {
-                        "lat": 23.019471,
-                        "lng": 72.557805
-                    }
-                ],
-                "optimised_route": true,
-                "drop_details": [
-                    {
-                        "lat": 23.023697,
-                        "lng": 72.523370,
-                        "reference_id": "drop-ref1"
-                    }
-                ],
-                "delivery_type": "SCHEDULED",
-                "schedule_time": 1631564100
-            }
+            data: locationObj
+            // Sample Object 
+            /* 
+                {
+                    "pickup_details": [
+                        {
+                            "lat": 12.9672,
+                            "lng": 77.6721,
+                            "reference_id": "drop-ref1"
+                        }
+                    ],
+                    "optimised_route": true,
+                    "drop_details": [
+                        {
+                            "lat": 12.9612,
+                            "lng": 77.6356,
+                            "reference_id": "drop-ref1"
+                        }
+                    ],
+                    "delivery_type": "SCHEDULED",
+                    "schedule_time": 1631564100
+                }
+            */
+
         });
 
         const dataPromise = promise.then((response) => response.data).catch((error) => console.log(error));

@@ -7,25 +7,6 @@ const cron = require('node-cron');
 
 const OrderStatus = require('./apps/models/order_statuses.model');
 const { rejectUnApprovedOrders } = require('./apps/controllers/order.controller');
-const { generateDunzoToken, createOrderDeliveryInDunzo } = require('./apps/helpers/common.helper');
-
-async function generateOrder() {
-    await generateDunzoToken().then(async (data) => {
-        if (data && data.token) {
-            let token = data.token;
-
-            await createOrderDeliveryInDunzo(token, {}).then(response => {
-                console.log(response);
-            }).catch(error => {
-                console.log("Something went wrong with generate token.")
-            })
-        } else {
-            console.log("Something went wrong with generate token.")
-        }
-    });
-}
-
-generateOrder();
 
 // routes
 const routes = require('./apps/routes/index.route');
