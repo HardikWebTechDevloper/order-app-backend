@@ -13,7 +13,7 @@ router.post('/get/by/staff', [getStaffValidation], orderController.getStaffOrder
 router.post('/update/status', [updateOrderStatusValidation], orderController.updateOrderStatus);
 router.post('/distributor/transactions/get', [], orderController.getDistributorTransactions);
 router.post('/brand/get', [brandValidation], orderController.getBrandOrders);
-router.post('/report', [brandValidation], orderController.getBrandTotalOrders);
+router.post('/report', [getOrderValidation], orderController.getDistributorTotalOrders);
 router.post('/send/delivery/otp', [orderValidation], orderController.sendDeliveryConfirmationOTP);
 router.post('/verify/delivery/otp', [verifyDeliveryOTPValidation], orderController.verifyDeliveryOTP);
 router.post('/verify/delivery/signature', orderController.verifyDeliveryBySignature);

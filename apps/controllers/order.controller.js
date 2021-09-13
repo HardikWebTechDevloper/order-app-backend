@@ -169,8 +169,12 @@ exports.updateOrderStatus = async function (request, response) {
                 })
             }
 
-            updateObj.deliver_by = deliver_by;
-            updateObj.staff_id = staff_user_id;
+            if (deliver_by == 'SELF') {
+                updateObj.deliver_by = deliver_by;
+                updateObj.staff_id = staff_user_id;
+            } else if (deliver_by == 'DUNZO') {
+                let { pickup_location, drop_location } = request.body;
+            }
         }
 
         Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
@@ -357,14 +361,14 @@ exports.getBrandOrders = async function (request, response) {
 /**
  * Dashboard.
  *
- * @param order_id
+ * @param distributor_id
  * @author  Hardik Gadhiya
  * @version 1.0
  * @since   2021-08-28
  */
-exports.getBrandTotalOrders = async function (request, response) {
+exports.getDistributorTotalOrders = async function (request, response) {
     try {
-        let { brand_user_id } = request.body;
+        let { distributor_id } = request.body;
         let today = moment().utcOffset("+05:30").format('YYYY-MM-DD');
 
         let startDate = `${today}T00:00:00.000Z`;
@@ -373,99 +377,87 @@ exports.getBrandTotalOrders = async function (request, response) {
         let monthStartDate = moment().utcOffset("+05:30").format("YYYY-MM-01");
         let monthEndDate = moment().utcOffset("+05:30").format("YYYY-MM-DD");
 
-        User.find({ brand_user_id: brand_user_id }, { _id: 1 }, async function (err, data) {
-            if (err) {
-                return response.send({
-                    status: false,
-                    message: "Distributor has not been found.",
-                })
-            } else {
-                // Get all distributors
-                let distributors = data.map(user => mongoose.Types.ObjectId(user._id));
+        // Get Total Orders
+        let totalOrders = await Order.find({ distributor_id: distributor_id }).count();
 
-                // Get Total Orders
-                let totalOrders = await Order.find({ distributor_id: distributors }).count();
+        // Get today's total orders
+        let totalOrdersOfToday = await Order.find({
+            distributor_id: distributor_id,
+            order_datetime: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        }).count();
 
-                // Get today's total orders
-                let totalOrdersOfToday = await Order.find({
-                    distributor_id: distributors,
-                    order_datetime: {
-                        $gte: startDate,
-                        $lt: endDate
-                    }
-                }).count();
+        // Get today's total pending orders
+        let totalPendingOrdersOfToday = await Order.find({
+            distributor_id: distributor_id,
+            order_status: "PENDING",
+            order_datetime: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        }).count();
 
-                // Get today's total pending orders
-                let totalPendingOrdersOfToday = await Order.find({
-                    distributor_id: distributors,
-                    order_status: "PENDING",
-                    order_datetime: {
-                        $gte: startDate,
-                        $lt: endDate
-                    }
-                }).count();
+        // Get today's total Accepted orders
+        let totalAcceptedOrdersOfToday = await Order.find({
+            distributor_id: distributor_id,
+            order_status: "ACCEPTED",
+            order_datetime: {
+                $gte: startDate,
+                $lt: endDate
+            }
+        }).count();
 
-                // Get today's total Accepted orders
-                let totalAcceptedOrdersOfToday = await Order.find({
-                    distributor_id: distributors,
-                    order_status: "ACCEPTED",
-                    order_datetime: {
-                        $gte: startDate,
-                        $lt: endDate
-                    }
-                }).count();
+        let DashboardData = { totalOrders, totalOrdersOfToday, totalPendingOrdersOfToday, totalAcceptedOrdersOfToday };
 
-                let DashboardData = { totalOrders, totalOrdersOfToday, totalPendingOrdersOfToday, totalAcceptedOrdersOfToday };
-
-                Order.aggregate([
-                    {
-                        "$match": {
-                            "$and": [
-                                {
-                                    "order_datetime": {
-                                        $gte: new Date(monthStartDate + 'T00:00:00.000Z'),
-                                        $lte: new Date(monthEndDate + 'T23:59:59.000Z'),
-                                    }
-                                },
-                                { "distributor_id": { "$in": distributors } }
-                            ]
-                        }
-                    },
-                    {
-                        "$group": {
-                            _id: { $dateToString: { format: "%Y-%m-%d", date: "$order_datetime" } }, count: { $sum: 1 }
-                        }
-                    },
-                    { "$sort": { _id: -1 } }
-                ]).then(async function (data) {
-                    let ChartData = [];
-
-                    if (data && data.length > 0) {
-                        monthStartDate = new Date(monthStartDate);
-                        monthEndDate = new Date(monthEndDate);
-
-                        let range = await getDates(new Date(monthStartDate), new Date(monthEndDate));
-
-                        range.forEach(element => {
-                            let date = moment(element).format('YYYY-MM-DD');
-                            let findData = data.find(relement => relement._id == date);
-
-                            let obj = {
-                                date: date,
-                                count: 0
+        Order.aggregate([
+            {
+                "$match": {
+                    "$and": [
+                        {
+                            "order_datetime": {
+                                $gte: new Date(monthStartDate + 'T00:00:00.000Z'),
+                                $lte: new Date(monthEndDate + 'T23:59:59.000Z'),
                             }
+                        },
+                        { "distributor_id": mongoose.Types.ObjectId(distributor_id) }
+                    ]
+                }
+            },
+            {
+                "$group": {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$order_datetime" } }, count: { $sum: 1 }
+                }
+            },
+            { "$sort": { _id: -1 } }
+        ]).then(async function (data) {
+            let ChartData = [];
 
-                            if (findData) {
-                                obj.count = findData.count;
-                            }
+            if (data && data.length > 0) {
+                monthStartDate = new Date(monthStartDate);
+                monthEndDate = new Date(monthEndDate);
 
-                            ChartData.push(obj);
-                        });
+                let range = await getDates(new Date(monthStartDate), new Date(monthEndDate));
+
+                range.forEach(element => {
+                    let date = moment(element).format('YYYY-MM-DD');
+                    let findData = data.find(relement => relement._id == date);
+
+                    let obj = {
+                        date: date,
+                        count: 0
                     }
 
-                    return response.send({ status: true, message: 'Distributor found.', ChartData, DashboardData });
+                    if (findData) {
+                        obj.count = findData.count;
+                    }
+
+                    ChartData.push(obj);
                 });
             }
+
+            return response.send({ status: true, message: 'Distributor found.', ChartData, DashboardData });
         });
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong." });

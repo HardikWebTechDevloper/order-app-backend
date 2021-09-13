@@ -70,33 +70,80 @@ module.exports.sendAcceptOrderOTP = (user_name, phone, otp) => {
 }
 
 /** 
- * Send OTP for login and authentication
+ * Generate Dunzo Token
  **/
 module.exports.generateDunzoToken = () => {
-    let hostName = process.env.HOST_NAME;
-    let ClientId = process.env.CLIENT_ID;
-    let ClientPassword = process.env.CLIENT_PASSWORD;
+    try {
+        let hostName = process.env.HOST_NAME;
+        let ClientId = process.env.CLIENT_ID;
+        let ClientPassword = process.env.CLIENT_PASSWORD;
 
-    console.log(hostName, ClientId, ClientPassword)
+        // Make a request for a user with a given ID
+        const promise = axios({
+            url: hostName + '/api/v1/token',
+            method: 'GET',
 
-    // Make a request for a user with a given ID
-    const promise = axios({
-        url: '/api/v1/token',
-        method: 'GET',
-        baseUrl: hostName,
+            // `headers` are custom headers to be sent
+            headers: {
+                'client-id': ClientId,
+                'client-secret': ClientPassword,
+                'Content-Type': 'application/json',
+                'Accept-Language': 'en_US'
+            },
+        });
+        const dataPromise = promise.then((response) => response.data).catch((error) => console.log(error));
 
-        // `headers` are custom headers to be sent
-        headers: {
-            'client-id': ClientId,
-            'client-secret': ClientPassword,
-            'Content-Type': 'application/json',
-            'Accept-Language': 'en_US'
-        },
-    });
-    const dataPromise = promise.then((response) => response.data);
-
-    return dataPromise;
+        return dataPromise;
+    } catch (error) {
+        console.log(error);
+    }
 }
 
-// Use below syntax for call OTP function
-// commonHelper.sendAcceptOrderOTP("Hardik Gadhiya", phone, otp).then(data => console.log(data))
+/** 
+ * Create Deivery Order in DUNZO
+ **/
+module.exports.createOrderDeliveryInDunzo = (token, order_details) => {
+    try {
+        let ClientId = process.env.CLIENT_ID;
+        let hostName = process.env.HOST_NAME;
+
+        // Make a request for a user with a given ID
+        const promise = axios({
+            method: 'POST',
+            url: hostName + '/api/v2/quote',
+
+            // `headers` are custom headers to be sent
+            headers: {
+                'client-id': ClientId,
+                'Authorization': token,
+                'Content-Type': 'application/json',
+                'Accept-Language': 'en_US'
+            },
+
+            // `Data`
+            data: {
+                "pickup_details": [
+                    {
+                        "lat": 23.019471,
+                        "lng": 72.557805
+                    }
+                ],
+                "optimised_route": true,
+                "drop_details": [
+                    {
+                        "lat": 23.023697,
+                        "lng": 72.523370,
+                        "reference_id": "drop-ref1"
+                    }
+                ],
+                "delivery_type": "SCHEDULED",
+                "schedule_time": 1631564100
+            }
+        });
+
+        const dataPromise = promise.then((response) => response.data).catch((error) => console.log(error));
+        return dataPromise;
+    } catch (error) {
+        return null;
+    }
+}
