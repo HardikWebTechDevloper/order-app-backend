@@ -7,7 +7,7 @@ const fs = require('fs');
 const formidable = require('formidable');
 
 const CommonHelper = require('../helpers/common.helper');
-const { generateDunzoToken, createOrderDeliveryInDunzo } = CommonHelper;
+const { generateDunzoToken, createOrderDeliveryInDunzo, getOrderById } = CommonHelper;
 
 const Order = require('../models/orders.model');
 const User = require('../models/user.model');
@@ -61,6 +61,70 @@ exports.placeOrder = async function (request, response) {
                 message: "Something went wrong. Order has not been created."
             });
         }
+    } catch (error) {
+        return response.send({ status: false, message: "Something went wrong.", error })
+    }
+};
+
+/**
+ * create new order v2
+ *
+ * @param amount, pincode, order_details
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-07-26
+ */
+exports.placeOrderV2 = async function (request, response) {
+    try {
+        var { order_id } = request.body;
+
+        getOrderById(order_id).then(async (orderResult) => {
+            if (orderResult.response && orderResult.response.data && orderResult.response.data.errors) {
+                return response.send({
+                    status: false,
+                    message: orderResult.response.data.errors,
+                });
+            } else {
+                let orderInfo = orderResult.order;
+                let order_details = JSON.stringify(orderInfo);
+                let pincode = orderInfo.billing_address.zip;
+
+                // Find distributor using pincode
+                let distributor = await DistributorPincode.findOne({ pin_code: pincode });
+
+                if (!distributor) {
+                    return response.send({
+                        status: false,
+                        message: "Distributor not found."
+                    })
+                }
+
+                let distributor_id = distributor.distributor_id;
+
+                let createOrderObj = {
+                    amount: orderInfo.total_outstanding,
+                    pincode: pincode,
+                    order_details,
+                    distributor_id,
+                    order_no: order_id
+                };
+
+                const order = new Order(createOrderObj)
+                await order.save();
+
+                if (order) {
+                    return response.send({
+                        status: true,
+                        message: "Order has been created successfully."
+                    });
+                } else {
+                    return response.send({
+                        status: false,
+                        message: "Something went wrong. Order has not been created."
+                    });
+                }
+            }
+        });
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong.", error })
     }

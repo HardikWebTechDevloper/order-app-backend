@@ -130,3 +130,23 @@ module.exports.createOrderDeliveryInDunzo = (token, locationObj) => {
         return null;
     }
 }
+
+/** 
+ * Get Order By Id 
+ **/
+module.exports.getOrderById = (order_id) => {
+    try {
+        let url = `https://ff7e98c56279a0a52ce6c7a55be542f3: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@myfitness-official-store.myshopify.com/admin/api/2021-07/orders/${order_id}.json`
+
+        // Make a request for a user with a given ID
+        const promise = axios({
+            method: 'GET',
+            url: url
+        });
+
+        const dataPromise = promise.then((response) => response.data).catch((error) => error);
+        return dataPromise;
+    } catch (error) {
+        return error;
+    }
+}

@@ -11,6 +11,10 @@ let OrdersSchema = new Schema({
         enum: ['PENDING', 'ACCEPTED', 'REJECTED_BY', 'NOT_ACCEPTED_BY', 'SCHEDULED', 'DELIVERED', 'RETURN'],
         default: 'PENDING'
     },
+    order_no: {
+        type: Number,
+        required: false
+    },
     amount: {
         type: Number,
         required: true
