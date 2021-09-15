@@ -110,7 +110,7 @@ module.exports.createOrderDeliveryInDunzo = (token, locationObj) => {
         // Make a request for a user with a given ID
         const promise = axios({
             method: 'POST',
-            url: hostName + '/api/v2/quote',
+            url: hostName + '/api/v2/tasks',
 
             // `headers` are custom headers to be sent
             headers: {
@@ -122,29 +122,6 @@ module.exports.createOrderDeliveryInDunzo = (token, locationObj) => {
 
             // `Data`
             data: locationObj
-            // Sample Object 
-            /* 
-                {
-                    "pickup_details": [
-                        {
-                            "lat": 12.9672,
-                            "lng": 77.6721,
-                            "reference_id": "drop-ref1"
-                        }
-                    ],
-                    "optimised_route": true,
-                    "drop_details": [
-                        {
-                            "lat": 12.9612,
-                            "lng": 77.6356,
-                            "reference_id": "drop-ref1"
-                        }
-                    ],
-                    "delivery_type": "SCHEDULED",
-                    "schedule_time": 1631564100
-                }
-            */
-
         });
 
         const dataPromise = promise.then((response) => response.data).catch((error) => console.log(error));

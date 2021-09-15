@@ -76,11 +76,24 @@ exports.placeOrder = async function (request, response) {
  */
 exports.getOrders = async function (request, response) {
     try {
-        let { distributor_id, order_status } = request.body;
+        let { distributor_id, order_status, start_date, end_date } = request.body;
         let whereClause = { distributor_id };
 
         if (order_status) {
             whereClause.order_status = order_status;
+        }
+
+        if (start_date && end_date) {
+            start_date = moment(start_date).utcOffset("+05:30").format("YYYY-MM-DD");
+            end_date = moment(end_date).utcOffset("+05:30").format("YYYY-MM-DD");
+
+            let startDate = `${start_date}T00:00:00.000Z`;
+            let endDate = `${end_date}T23:59:59.000Z`;
+
+            whereClause.order_datetime = {
+                $gte: startDate,
+                $lt: endDate
+            };
         }
 
         Order.find(whereClause, function (err, data) {
@@ -208,30 +221,37 @@ exports.updateOrderStatus = async function (request, response) {
                     deliveryDateTime;
                 let unixTime = moment(expected_delivery_time).unix();
 
+                // GENERATE DUNZO TOKEN
                 await generateDunzoToken().then(async (data) => {
                     if (data && data.token) {
                         let token = data.token;
+                        let reference_id = moment().utcOffset("+05:30").unix();
 
+                        // CREATE TASK IN DUNZO
                         let locationObj = {
+                            "request_id": order_id,
+                            "reference_id": `${order_id}-${reference_id}`,
                             "pickup_details": [
                                 {
-                                    "lat": parseFloat(pickup_location.coordinates.lat),
-                                    "lng": parseFloat(pickup_location.coordinates.lng),
-                                    "reference_id": "drop-ref1"
+                                    "reference_id": "pick_ref_1",
+                                    "address": pickup_location
                                 }
                             ],
                             "optimised_route": true,
                             "drop_details": [
                                 {
-                                    "lat": parseFloat(drop_location.coordinates.lat),
-                                    "lng": parseFloat(drop_location.coordinates.lng),
-                                    "reference_id": "drop-ref1"
+                                    "reference_id": "drop_ref_1",
+                                    "address": drop_location,
+                                    "otp_required": true,
+                                    "special_instructions": ""
                                 }
                             ],
+                            "payment_method": "DUNZO_CREDIT",
                             "delivery_type": "SCHEDULED",
                             "schedule_time": parseInt(unixTime)
                         };
 
+                        // CREATE TASK
                         await createOrderDeliveryInDunzo(token, locationObj).then(result => {
                             if (result.code) {
                                 return response.send({
@@ -242,12 +262,16 @@ exports.updateOrderStatus = async function (request, response) {
                                 let delivery_details = result;
                                 delivery_details = JSON.stringify(delivery_details);
 
+                                let address_details = JSON.stringify(locationObj);
+
                                 let orderObj = {
                                     delivery_details,
                                     order_status,
-                                    deliver_by
+                                    deliver_by,
+                                    address_details
                                 };
 
+                                // Update address, delivery details and order status
                                 Order.updateOne({ _id: order_id }, orderObj, async function (err, data) {
                                     if (err) {
                                         return response.send({
@@ -310,10 +334,28 @@ exports.updateOrderStatus = async function (request, response) {
  */
 exports.getDistributorTransactions = async function (request, response) {
     try {
-        let { distributor_id, brand_user_id } = request.body;
+        let { distributor_id, brand_user_id, start_date, end_date } = request.body;
+
+        let whereClause = {
+            distributor_id: distributor_id
+        };
+
+        if (start_date && end_date) {
+            start_date = moment(start_date).utcOffset("+05:30").format("YYYY-MM-DD");
+            end_date = moment(end_date).utcOffset("+05:30").format("YYYY-MM-DD");
+
+            let startDate = `${start_date}T00:00:00.000Z`;
+            let endDate = `${end_date}T23:59:59.000Z`;
+
+            whereClause.created_at = {
+                $gte: startDate,
+                $lt: endDate
+            };
+        }
+
 
         if (distributor_id) {
-            Transaction.find({ distributor_id: distributor_id }, function (err, raws) {
+            Transaction.find(whereClause, function (err, raws) {
                 if (err) {
                     return response.send({
                         status: false,
@@ -361,8 +403,21 @@ exports.getDistributorTransactions = async function (request, response) {
                 } else {
                     let distributors = data.map(user => user._id);
                     let whereClause = {
-                        distributor_id: distributors
+                        distributor_id: distributors,
                     };
+
+                    if (start_date && end_date) {
+                        start_date = moment(start_date).utcOffset("+05:30").format("YYYY-MM-DD");
+                        end_date = moment(end_date).utcOffset("+05:30").format("YYYY-MM-DD");
+
+                        let startDate = `${start_date}T00:00:00.000Z`;
+                        let endDate = `${end_date}T23:59:59.000Z`;
+
+                        whereClause.created_at = {
+                            $gte: startDate,
+                            $lt: endDate
+                        };
+                    }
 
                     Transaction
                         .find(whereClause)
@@ -408,6 +463,7 @@ exports.getDistributorTransactions = async function (request, response) {
             });
         }
     } catch (error) {
+        console.log(error)
         return response.send({ status: false, message: "Something went wrong." });
     }
 };

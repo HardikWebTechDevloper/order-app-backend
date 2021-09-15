@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
+const moment = require('moment');
 
 const commonHelper = require('../helpers/common.helper');
 const User = require('../models/user.model');
@@ -178,7 +179,12 @@ exports.createDistributor = async function (request, response) {
             let distributorPincodes = [];
             let distributor_id = user._id;
 
-            covered_pincode.map(data => {
+            // Validate Unique Array
+            const uniqueCoveredPincodes = covered_pincode.filter((value, index, self) => {
+                return self.indexOf(value) === index
+            });
+
+            uniqueCoveredPincodes.map(data => {
                 if (data && data != '') {
                     let element = {};
                     element.distributor_id = distributor_id;
@@ -217,35 +223,23 @@ exports.updateDistributor = async function (request, response) {
             if (err) {
                 return response.send({ status: false, message: 'Distributor has not been updated.' });
             } else {
-                let getPincodes = await DistributorPincode.find({ distributor_id: user_id });
+                //  Delete
+                await DistributorPincode.remove({ distributor_id: user_id });
 
-                if (getPincodes && getPincodes.length > 0) {
-                    //  Delete
-                    getPincodes.forEach(async (data) => {
-                        let pincode = covered_pincode.find(element => data.pin_code == element);
+                // Validate Unique Array
+                const uniqueCoveredPincodes = covered_pincode.filter((value, index, self) => {
+                    return self.indexOf(value) === index
+                });
 
-                        if (!pincode && pincode == undefined) {
-                            await DistributorPincode.remove({
-                                distributor_id: user_id,
-                                pin_code: data.pin_code
-                            });
-                        }
+                // Insert 
+                uniqueCoveredPincodes.forEach(async (element) => {
+                    let createPincode = new DistributorPincode({
+                        distributor_id: user_id,
+                        pin_code: element
                     });
 
-                    // Insert 
-                    covered_pincode.forEach(async (element) => {
-                        let pincode = getPincodes.find(data => data.pin_code == element);
-
-                        if (!pincode && pincode == undefined) {
-                            let createPincode = new DistributorPincode({
-                                distributor_id: user_id,
-                                pin_code: element
-                            });
-
-                            await createPincode.save();
-                        }
-                    });
-                }
+                    await createPincode.save();
+                });
 
                 return response.send({ status: true, message: 'Distributor has been updated successfully.' });
             }
@@ -264,14 +258,22 @@ exports.updateDistributor = async function (request, response) {
  */
 exports.getDistributors = async function (request, response) {
     try {
-        const { brand_user_id } = request.body;
+        const { brand_user_id, start_date, end_date } = request.body;
+
+        let startDate = moment(start_date).utcOffset("+05:30").format("YYYY-MM-DD");
+        let endDate = moment(end_date).utcOffset("+05:30").format("YYYY-MM-DD");
 
         User.aggregate([
             {
                 "$match": {
                     "$and": [
                         { "status": { "$eq": true } },
-                        // { "brand_user_id": { "$ne": null } },
+                        {
+                            "created_at": {
+                                $gte: new Date(startDate + 'T00:00:00.000Z'),
+                                $lte: new Date(endDate + 'T23:59:59.000Z'),
+                            }
+                        },
                         { "brand_user_id": { "$eq": mongoose.Types.ObjectId(brand_user_id) } }
                     ]
                 }
@@ -308,6 +310,7 @@ exports.getDistributors = async function (request, response) {
             return response.send({ status: true, message: 'Distributor found.', data: data });
         });
     } catch (error) {
+        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
