@@ -12,8 +12,8 @@ let OrdersSchema = new Schema({
         default: 'PENDING'
     },
     order_no: {
-        type: Number,
-        required: false
+        type: String,
+        required: true
     },
     amount: {
         type: Number,
@@ -22,6 +22,11 @@ let OrdersSchema = new Schema({
     deliver_by: {
         type: String,
         enum: ['', 'DUNZO', 'SELF'],
+        default: ''
+    },
+    payment_mode: {
+        type: String,
+        enum: ['', 'cod', 'prepaid'],
         default: ''
     },
     pincode: {

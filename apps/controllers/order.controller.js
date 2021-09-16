@@ -10,6 +10,7 @@ const CommonHelper = require('../helpers/common.helper');
 const { generateDunzoToken, createOrderDeliveryInDunzo, getOrderById } = CommonHelper;
 
 const Order = require('../models/orders.model');
+const UnConfirmedOrder = require('../models/unconfirmed_orders.controller');
 const User = require('../models/user.model');
 const Role = require('../models/roles.model');
 const Transaction = require('../models/transactions.model');
@@ -76,7 +77,24 @@ exports.placeOrder = async function (request, response) {
  */
 exports.placeOrderV2 = async function (request, response) {
     try {
-        var { order_id } = request.body;
+        var { order_id } = request.query;
+
+        if (!order_id) {
+            return response.send({
+                status: false,
+                message: "Order id can not be empty.",
+            });
+        }
+
+        // Check order
+        let checkOrder = await Order.findOne({ order_no: order_id });
+
+        if (checkOrder) {
+            return response.send({
+                status: false,
+                message: "Order is already exists in our records.",
+            });
+        }
 
         getOrderById(order_id).then(async (orderResult) => {
             if (orderResult.response && orderResult.response.data && orderResult.response.data.errors) {
@@ -87,41 +105,106 @@ exports.placeOrderV2 = async function (request, response) {
             } else {
                 let orderInfo = orderResult.order;
                 let order_details = JSON.stringify(orderInfo);
-                let pincode = orderInfo.billing_address.zip;
+                let pincode = orderInfo.shipping_address.zip;
+                let tags = orderInfo.tags;
+                let financial_status = orderInfo.financial_status;
 
-                // Find distributor using pincode
-                let distributor = await DistributorPincode.findOne({ pin_code: pincode });
+                let validateMinutes = 60;
+                let order_created_at = moment(orderInfo.created_at);
+                let current_date_time = moment().utcOffset("+05:30");
 
-                if (!distributor) {
-                    return response.send({
-                        status: false,
-                        message: "Distributor not found."
-                    })
-                }
+                let dif = moment.duration(current_date_time.diff(order_created_at));
+                let minutes = (dif.hours() * 60) + dif.minutes();
 
-                let distributor_id = distributor.distributor_id;
+                // Check order should be created inside an hour
+                if (minutes <= validateMinutes) {
 
-                let createOrderObj = {
-                    amount: orderInfo.total_outstanding,
-                    pincode: pincode,
-                    order_details,
-                    distributor_id,
-                    order_no: order_id
-                };
+                    // Find distributor using pincode
+                    let distributor = await DistributorPincode.findOne({ pin_code: pincode });
 
-                const order = new Order(createOrderObj)
-                await order.save();
+                    if (!distributor) {
+                        return response.send({
+                            status: false,
+                            message: "Distributor has not been found."
+                        })
+                    }
 
-                if (order) {
-                    return response.send({
-                        status: true,
-                        message: "Order has been created successfully."
-                    });
+                    // Payment Mode
+                    let payment_mode;
+
+                    if (financial_status == 'pending') {
+                        payment_mode = "cod";
+                    } else if (financial_status == 'paid') {
+                        payment_mode = "prepaid";
+                    }
+
+                    if (tags && tags == "✅ Confirmed-CODfirm") {
+                        let distributor_id = distributor.distributor_id;
+
+                        let createOrderObj = {
+                            amount: orderInfo.total_outstanding,
+                            pincode: pincode,
+                            order_details,
+                            distributor_id,
+                            order_no: order_id,
+                            payment_mode: payment_mode
+                        };
+
+                        const order = new Order(createOrderObj)
+                        await order.save();
+
+                        if (order) {
+                            return response.send({
+                                status: true,
+                                message: "Order has been created successfully."
+                            });
+                        } else {
+                            return response.send({
+                                status: false,
+                                message: "Something went wrong. Order has not been created."
+                            });
+                        }
+                    } else {
+
+                        // Check order
+                        let checkOrder = await UnConfirmedOrder.findOne({ order_no: order_id });
+
+                        if (checkOrder) {
+                            return response.send({
+                                status: false,
+                                message: "Order is already exists in our records.",
+                            });
+                        }
+
+                        // UnConfirmedOrders
+                        let unconfirmedOrderObj = {
+                            order_no: order_id,
+                            payment_mode,
+                            pincode,
+                            order_details,
+                            order_datetime: orderInfo.created_at,
+                        };
+
+                        const unconfirmed_order = new UnConfirmedOrder(unconfirmedOrderObj)
+                        await unconfirmed_order.save();
+
+                        if (unconfirmed_order) {
+                            return response.send({
+                                status: true,
+                                message: "Order has been created successfully."
+                            });
+                        } else {
+                            return response.send({
+                                status: false,
+                                message: "Something went wrong. Order has not been created."
+                            });
+                        }
+                    }
                 } else {
                     return response.send({
                         status: false,
-                        message: "Something went wrong. Order has not been created."
-                    });
+                        message: "Order must be created inside an hour."
+                    })
                 }
             }
         });
