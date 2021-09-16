@@ -25,8 +25,8 @@ let UnConfirmedOrderSchema = new Schema({
         required: true
     },
     order_datetime: {
-        type: Date,
-        default: Date.now()
+        type: String,
+        required: true
     },
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

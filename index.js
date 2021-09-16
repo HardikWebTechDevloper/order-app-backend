@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const cron = require('node-cron');
 
 const OrderStatus = require('./apps/models/order_statuses.model');
-const { rejectUnApprovedOrders } = require('./apps/controllers/order.controller');
+const { rejectUnApprovedOrders, checkUnConfiguredOrders } = require('./apps/controllers/order.controller');
 
 // routes
 const routes = require('./apps/routes/index.route');
@@ -62,6 +62,7 @@ app.use(cors());
 app.use('/api/v1', routes);
 
 cron.schedule('* * * * *', rejectUnApprovedOrders);
+cron.schedule('* * * * *', checkUnConfiguredOrders);
 
 app.listen(port, () => {
     console.log('✓ Server is up and running on port number ' + port);

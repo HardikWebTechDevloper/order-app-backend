@@ -109,102 +109,86 @@ exports.placeOrderV2 = async function (request, response) {
                 let tags = orderInfo.tags;
                 let financial_status = orderInfo.financial_status;
 
-                let validateMinutes = 60;
-                let order_created_at = moment(orderInfo.created_at);
-                let current_date_time = moment().utcOffset("+05:30");
+                // Find distributor using pincode
+                let distributor = await DistributorPincode.findOne({ pin_code: pincode });
 
-                let dif = moment.duration(current_date_time.diff(order_created_at));
-                let minutes = (dif.hours() * 60) + dif.minutes();
-
-                // Check order should be created inside an hour
-                if (minutes <= validateMinutes) {
-
-                    // Find distributor using pincode
-                    let distributor = await DistributorPincode.findOne({ pin_code: pincode });
-
-                    if (!distributor) {
-                        return response.send({
-                            status: false,
-                            message: "Distributor has not been found."
-                        })
-                    }
-
-                    // Payment Mode
-                    let payment_mode;
-
-                    if (financial_status == 'pending') {
-                        payment_mode = "cod";
-                    } else if (financial_status == 'paid') {
-                        payment_mode = "prepaid";
-                    }
-
-                    if (tags && tags == "✅ Confirmed-CODfirm") {
-                        let distributor_id = distributor.distributor_id;
-
-                        let createOrderObj = {
-                            amount: orderInfo.total_outstanding,
-                            pincode: pincode,
-                            order_details,
-                            distributor_id,
-                            order_no: order_id,
-                            payment_mode: payment_mode
-                        };
-
-                        const order = new Order(createOrderObj)
-                        await order.save();
-
-                        if (order) {
-                            return response.send({
-                                status: true,
-                                message: "Order has been created successfully."
-                            });
-                        } else {
-                            return response.send({
-                                status: false,
-                                message: "Something went wrong. Order has not been created."
-                            });
-                        }
-                    } else {
-
-                        // Check order
-                        let checkOrder = await UnConfirmedOrder.findOne({ order_no: order_id });
-
-                        if (checkOrder) {
-                            return response.send({
-                                status: false,
-                                message: "Order is already exists in our records.",
-                            });
-                        }
-
-                        // UnConfirmedOrders
-                        let unconfirmedOrderObj = {
-                            order_no: order_id,
-                            payment_mode,
-                            pincode,
-                            order_details,
-                            order_datetime: orderInfo.created_at,
-                        };
-
-                        const unconfirmed_order = new UnConfirmedOrder(unconfirmedOrderObj)
-                        await unconfirmed_order.save();
-
-                        if (unconfirmed_order) {
-                            return response.send({
-                                status: true,
-                                message: "Order has been created successfully."
-                            });
-                        } else {
-                            return response.send({
-                                status: false,
-                                message: "Something went wrong. Order has not been created."
-                            });
-                        }
-                    }
-                } else {
+                if (!distributor) {
                     return response.send({
                         status: false,
-                        message: "Order must be created inside an hour."
+                        message: "Distributor has not been found."
                     })
+                }
+
+                // Payment Mode
+                let payment_mode;
+
+                if (financial_status == 'pending') {
+                    payment_mode = "cod";
+                } else if (financial_status == 'paid') {
+                    payment_mode = "prepaid";
+                }
+
+                if (tags && tags == "✅ Confirmed-CODfirm") {
+                    let distributor_id = distributor.distributor_id;
+
+                    let createOrderObj = {
+                        amount: orderInfo.total_outstanding,
+                        pincode: pincode,
+                        order_details,
+                        distributor_id,
+                        order_no: order_id,
+                        payment_mode: payment_mode
+                    };
+
+                    const order = new Order(createOrderObj)
+                    await order.save();
+
+                    if (order) {
+                        return response.send({
+                            status: true,
+                            message: "Order has been created successfully."
+                        });
+                    } else {
+                        return response.send({
+                            status: false,
+                            message: "Something went wrong. Order has not been created."
+                        });
+                    }
+                } else {
+
+                    // Check order
+                    let checkOrder = await UnConfirmedOrder.findOne({ order_no: order_id });
+
+                    if (checkOrder) {
+                        return response.send({
+                            status: false,
+                            message: "Order is already exists in our records.",
+                        });
+                    }
+
+                    // UnConfirmedOrders
+                    let unconfirmedOrderObj = {
+                        order_no: order_id,
+                        payment_mode,
+                        pincode,
+                        order_details,
+                        order_datetime: orderInfo.created_at,
+                    };
+
+                    const unconfirmed_order = new UnConfirmedOrder(unconfirmedOrderObj)
+                    await unconfirmed_order.save();
+
+                    if (unconfirmed_order) {
+                        return response.send({
+                            status: true,
+                            message: "Order has been created successfully."
+                        });
+                    } else {
+                        return response.send({
+                            status: false,
+                            message: "Something went wrong. Order has not been created."
+                        });
+                    }
                 }
             }
         });
@@ -212,6 +196,82 @@ exports.placeOrderV2 = async function (request, response) {
         return response.send({ status: false, message: "Something went wrong.", error })
     }
 };
+
+/**
+ * Order CRON.
+ *
+ * @param --
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-16
+ */
+exports.checkUnConfiguredOrders = async () => {
+    try {
+        console.log("✅ ORDER CRON STARTED:: ", moment().utcOffset("+05:30").format("YYYY-MM-DD HH:mm:ss"));
+
+        let getOrders = await UnConfirmedOrder.find({}, { order_no: 1 });
+
+        if (getOrders && getOrders.length > 0) {
+            asyncL.each(getOrders, (order, callback) => {
+                let order_id = order.order_no;
+                getOrderById(order_id).then(async (orderResult) => {
+                    if (orderResult && orderResult.order) {
+                        let orderInfo = orderResult.order;
+                        let tags = orderInfo.tags;
+
+                        if (tags && tags == "✅ Confirmed-CODfirm") {
+                            let order_details = JSON.stringify(orderInfo);
+                            let pincode = orderInfo.shipping_address.zip;
+                            let financial_status = orderInfo.financial_status;
+
+                            // Find distributor using pincode
+                            let distributor = await DistributorPincode.findOne({ pin_code: pincode });
+
+                            if (distributor) {
+                                // Payment Mode
+                                let payment_mode;
+
+                                if (financial_status == 'pending') {
+                                    payment_mode = "cod";
+                                } else if (financial_status == 'paid') {
+                                    payment_mode = "prepaid";
+                                }
+
+                                let distributor_id = distributor.distributor_id;
+
+                                let createOrderObj = {
+                                    amount: orderInfo.total_outstanding,
+                                    pincode: pincode,
+                                    order_details,
+                                    distributor_id,
+                                    order_no: order_id,
+                                    payment_mode: payment_mode
+                                };
+
+                                const order = new Order(createOrderObj)
+                                await order.save();
+
+                                // Remove record
+                                await UnConfirmedOrder.remove({ order_no: order_id });
+
+                                callback();
+                            } else {
+                                await UnConfirmedOrder.remove({ order_no: order_id });
+                                callback();
+                            }
+                        } else {
+                            callback();
+                        }
+                    }
+                });
+            }, (err) => {
+                console.log("ORDER CRON END:: ", moment().utcOffset("+05:30").format("YYYY-MM-DD HH:mm:ss"));
+            });
+        }
+    } catch (error) {
+        console.log("Error", error);
+    }
+}
 
 /**
  * Get orders.
