@@ -62,7 +62,7 @@ app.use(cors());
 app.use('/api/v1', routes);
 
 cron.schedule('* * * * *', rejectUnApprovedOrders);
-cron.schedule('* * * * *', checkUnConfiguredOrders);
+cron.schedule('0 */15 * * *', checkUnConfiguredOrders);
 
 app.listen(port, () => {
     console.log('✓ Server is up and running on port number ' + port);

@@ -710,6 +710,10 @@ exports.getBrandOrders = async function (request, response) {
                             message: "Orders has not been found.",
                         })
                     } else {
+                        orders.forEach((data, index) => {
+                            orders[index].order_details = JSON.parse(data.order_details);
+                        });
+
                         return response.send({
                             status: true,
                             message: "Orders found.",

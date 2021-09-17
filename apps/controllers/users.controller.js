@@ -260,20 +260,23 @@ exports.getDistributors = async function (request, response) {
     try {
         const { brand_user_id, start_date, end_date } = request.body;
 
-        let startDate = moment(start_date).utcOffset("+05:30").format("YYYY-MM-DD");
-        let endDate = moment(end_date).utcOffset("+05:30").format("YYYY-MM-DD");
+        let datePickerFilter = {}
+
+        if (start_date && end_date) {
+            datePickerFilter = {
+                "created_at": {
+                    $gte: new Date(start_date + 'T00:00:00.000Z'),
+                    $lte: new Date(end_date + 'T23:59:59.000Z'),
+                }
+            };
+        }
 
         User.aggregate([
             {
                 "$match": {
                     "$and": [
                         { "status": { "$eq": true } },
-                        {
-                            "created_at": {
-                                $gte: new Date(startDate + 'T00:00:00.000Z'),
-                                $lte: new Date(endDate + 'T23:59:59.000Z'),
-                            }
-                        },
+                        datePickerFilter,
                         { "brand_user_id": { "$eq": mongoose.Types.ObjectId(brand_user_id) } }
                     ]
                 }
