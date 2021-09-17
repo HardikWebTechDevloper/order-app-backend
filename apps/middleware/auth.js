@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 const User = require('../models/user.model')
 
-const auth = async(req, res, next) => {
+exports.checkToken = async (req, res, next) => {
     if (!req.header('Authorization') || typeof req.header('Authorization') == 'undefined') {
         return res.status(401).send({ status: false, message: 'Authorize token is missing.' })
     } else {
@@ -21,5 +21,3 @@ const auth = async(req, res, next) => {
         }
     }
 }
-
-module.exports = auth;

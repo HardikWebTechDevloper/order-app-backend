@@ -88,11 +88,14 @@ exports.sendOTP = async function (request, response) {
             // Send OTP
             commonHelper.sendLoginOTP(phone, otp).then(data => {
                 if (data) {
-                    User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, function (error, result) {
+                    User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, async function (error, result) {
                         if (error) {
                             return response.send({ status: false, message: 'Something went wrong with update otp.' });
                         } else {
-                            return response.send({ status: true, message: 'OTP has been sent on your phone number.' });
+                            // Get role
+                            let user_role = await Role.findOne({ _id: user.role_id });
+
+                            return response.send({ status: true, message: 'OTP has been sent on your phone number.', user_role });
                         }
                     });
                 } else {
@@ -130,14 +133,21 @@ exports.verifyOTP = async function (request, response) {
             return response.send({ status: false, message: 'The OTP you enetered is invalid. Please enter correct OTP.' });
         }
 
+        // Get role
+        let user_role = await Role.findOne({ _id: user.role_id });
+
         //Generate and update JWT token to user account
         const token = await user.generateAuthToken();
 
+        // Reset OTP
+        await User.updateOne({ _id: user._id }, { otp: null });
+
         return response.send({
             status: true,
-            data: { user, token }
+            data: { user, user_role, token }
         });
     } catch (error) {
+        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
