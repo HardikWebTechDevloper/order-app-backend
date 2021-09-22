@@ -229,12 +229,24 @@ exports.updateDistributor = async function (request, response) {
         const { user_id, covered_pincode } = request.body;
         const body = request.body;
 
+        // Check Unique Email
+        let checkEmail = await User.findOne({ _id: { $ne: user_id }, email: body.email });
+        if (checkEmail) {
+            return response.send({ status: false, message: 'Email address already in use.' });
+        }
+
+        // Check Unique Phone Number
+        let checkPhone = await User.findOne({ _id: { $ne: user_id }, phone: body.phone });
+        if (checkPhone) {
+            return response.send({ status: false, message: 'Phone number already in use.' });
+        }
+
         delete body.user_id;
         delete body.covered_pincode;
 
         User.updateOne({ _id: user_id }, body, async function (err, data) {
             if (err) {
-                return response.send({ status: false, message: 'Distributor has not been updated.' });
+                return response.send({ status: false, message: 'Something went wrong with update distributor details.' });
             } else {
                 //  Delete
                 await DistributorPincode.remove({ distributor_id: user_id });
