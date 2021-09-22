@@ -7,8 +7,8 @@ const { getStaffValidation, updateOrderScheduleByDistributorValidation, createOr
 const Authentication = require('../middleware/auth');
 
 // a simple test url to check that all of our files are communicating correctly.
-router.post('/place', [createOrderValidation], orderController.placeOrder);
-router.get('/place/v2', orderController.placeOrderV2);
+// router.post('/place', [createOrderValidation], orderController.placeOrder);
+router.get('/place', orderController.placeOrderV2);
 router.post('/get/by/distributor', [getOrderValidation], orderController.getOrders);
 router.post('/get/by/staff', [getStaffValidation], orderController.getStaffOrders);
 router.post('/update/status', [updateOrderStatusValidation], orderController.updateOrderStatus);
