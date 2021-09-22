@@ -87,6 +87,7 @@ exports.sendOTP = async function (request, response) {
 
             // Send OTP
             commonHelper.sendLoginOTP(phone, otp).then(data => {
+                console.log(data)
                 if (data) {
                     User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, async function (error, result) {
                         if (error) {
@@ -102,10 +103,12 @@ exports.sendOTP = async function (request, response) {
                     return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
                 }
             }).catch(err => {
+                console.log(err)
                 return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
             });
         }
     } catch (error) {
+        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
