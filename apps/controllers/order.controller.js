@@ -311,6 +311,16 @@ exports.getOrders = async function (request, response) {
                     message: "Something went wrong."
                 })
             } else {
+                if (data && data.length > 0) {
+                    data = JSON.parse(JSON.stringify(data));
+
+                    data = data.map(element => {
+                        let orderDetails = element.order_details;
+                        delete element.order_details;
+                        element.order_details = JSON.parse(orderDetails);
+                        return element;
+                    });
+                }
                 return response.send({
                     status: true,
                     message: "Order Found.",
@@ -347,6 +357,16 @@ exports.getStaffOrders = async function (request, response) {
                     message: "Something went wrong."
                 })
             } else {
+                if (data && data.length > 0) {
+                    data = JSON.parse(JSON.stringify(data));
+
+                    data = data.map(element => {
+                        let orderDetails = element.order_details;
+                        delete element.order_details;
+                        element.order_details = JSON.parse(orderDetails);
+                        return element;
+                    });
+                }
                 return response.send({
                     status: true,
                     message: "Order Found.",

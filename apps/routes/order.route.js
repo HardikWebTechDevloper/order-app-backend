@@ -15,7 +15,7 @@ router.post('/brand/get', [checkToken, brandValidation], orderController.getBran
 router.post('/report', [checkToken, getOrderValidation], orderController.getDistributorTotalOrders);
 router.post('/send/delivery/otp', [checkToken, orderValidation], orderController.sendDeliveryConfirmationOTP);
 router.post('/verify/delivery/otp', [checkToken, verifyDeliveryOTPValidation], orderController.verifyDeliveryOTP);
-router.post('/verify/delivery/signature', [checkToken], orderController.verifyDeliveryBySignature);
+router.post('/verify/delivery/signature', [checkToken],orderController.verifyDeliveryBySignature);
 router.post('/update/schedule/by/distributor', [checkToken, updateOrderScheduleByDistributorValidation], orderController.updateOrderScheduleByDistributor);
 
 module.exports = router;
