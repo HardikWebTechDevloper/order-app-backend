@@ -3,9 +3,9 @@ const router = express.Router();
 
 const citiesController = require('../../controllers/master/cities.controller');
 const { createCities, getAllCityByState } = require('../../validations/masters.validation');
-const Authentication = require('../../middleware/auth');
+const { checkToken } = require('../../middleware/auth');
 
-router.post('/create', [createCities], citiesController.createCity);
-router.post('/get/all', [getAllCityByState], citiesController.getCitiesList);
+router.post('/create', [checkToken, createCities], citiesController.createCity);
+router.post('/get/all', [checkToken, getAllCityByState], citiesController.getCitiesList);
 
 module.exports = router;

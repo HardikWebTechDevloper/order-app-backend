@@ -12,18 +12,17 @@ exports.createCountry = async function (request, response) {
     // Create a new Country
     try {
         var body = request.body;
-        var errors = [];
 
-        if (errors && errors.length > 0) {
-            var message = errors.join(', ');
+        let checkCountry = await Country.findOne({ country_name: body.country_name });
 
+        if (checkCountry) {
             return response.send({
                 status: false,
-                message: message
-            })
+                message: "Country is already exists in our records."
+            });
         }
 
-        const country = new Country(body)
+        const country = new Country(body);
         await country.save();
 
         if (country) {

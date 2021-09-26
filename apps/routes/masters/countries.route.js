@@ -3,9 +3,9 @@ const router = express.Router();
 
 const countriesController = require('../../controllers/master/countries.controller');
 const { createCountries } = require('../../validations/masters.validation');
-const Authentication = require('../../middleware/auth');
+const { checkToken } = require('../../middleware/auth');
 
-router.post('/create', [createCountries], countriesController.createCountry);
-router.post('/get/all', countriesController.getCountriesList);
+router.post('/create', [checkToken, createCountries], countriesController.createCountry);
+router.post('/get/all', [checkToken], countriesController.getCountriesList);
 
 module.exports = router;

@@ -104,6 +104,7 @@ exports.placeOrderV2 = async function (request, response) {
                 });
             } else {
                 let orderInfo = orderResult.order;
+
                 let order_details = JSON.stringify(orderInfo);
                 let pincode = orderInfo.shipping_address.zip;
                 let tags = orderInfo.tags;

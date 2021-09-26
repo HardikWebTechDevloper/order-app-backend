@@ -142,6 +142,8 @@ exports.verifyOTP = async function (request, response) {
         //Generate and update JWT token to user account
         const token = await user.generateAuthToken();
 
+        console.log(token)
+
         // Reset OTP
         await User.updateOne({ _id: user._id }, { otp: null });
 

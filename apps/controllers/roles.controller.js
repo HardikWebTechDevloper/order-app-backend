@@ -12,6 +12,7 @@ exports.createRole = async function (request, response) {
     // Create a new Role
     try {
         var body = request.body;
+
         var errors = [];
 
         if (!body.role_name) {
@@ -21,17 +22,27 @@ exports.createRole = async function (request, response) {
         if (errors && errors.length > 0) {
             var message = errors.join(', ');
 
-            return response.status(400).send({
+            return response.send({
                 status: false,
                 message: message
             })
         }
 
+        let checkRole = await Role.findOne({ role_name: body.role_name });
+
+        if (checkRole) {
+            return response.send({
+                status: false,
+                message: "Role name is already exists in our records."
+            })
+        }
+
+        // Create role
         const role = new Role(body)
         await role.save();
 
         if (role) {
-            return response.status(201).send({
+            return response.send({
                 status: true,
                 message: "Role has been created successfully."
             })
@@ -42,7 +53,8 @@ exports.createRole = async function (request, response) {
             })
         }
     } catch (error) {
-        return response.status(400).send({ status: false, message: error })
+        console.log(error)
+        return response.send({ status: false, message: "Something went wrong" })
     }
 };
 
