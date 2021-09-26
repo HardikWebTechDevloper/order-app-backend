@@ -166,7 +166,6 @@ exports.manageBrandDeliveryPartner = async function (request, response) {
         }
 
     } catch (error) {
-        console.log(error);
         return response.send({ status: false, message: "Something went wrong" })
     }
 };

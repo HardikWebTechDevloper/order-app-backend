@@ -87,7 +87,6 @@ exports.sendOTP = async function (request, response) {
 
             // Send OTP
             commonHelper.sendLoginOTP(phone, otp).then(data => {
-                console.log(data)
                 if (data) {
                     User.updateOne({ _id: user._id }, { otp: otp, otpSentAt: currentTime }, async function (error, result) {
                         if (error) {
@@ -103,12 +102,10 @@ exports.sendOTP = async function (request, response) {
                     return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
                 }
             }).catch(err => {
-                console.log(err)
                 return response.send({ status: false, message: 'OTP failed to send on your phone number. Please try again.' });
             });
         }
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
@@ -142,8 +139,6 @@ exports.verifyOTP = async function (request, response) {
         //Generate and update JWT token to user account
         const token = await user.generateAuthToken();
 
-        console.log(token)
-
         // Reset OTP
         await User.updateOne({ _id: user._id }, { otp: null });
 
@@ -152,7 +147,6 @@ exports.verifyOTP = async function (request, response) {
             data: { user, user_role, token }
         });
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
@@ -340,7 +334,6 @@ exports.getDistributors = async function (request, response) {
             return response.send({ status: true, message: 'Distributor found.', data: data });
         });
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong" })
     }
 };
