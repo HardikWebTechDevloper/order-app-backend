@@ -7,7 +7,7 @@ const fs = require('fs');
 const formidable = require('formidable');
 
 const CommonHelper = require('../helpers/common.helper');
-const { generateDunzoToken, createOrderDeliveryInDunzo, getOrderById } = CommonHelper;
+const { generateDunzoToken, createOrderDeliveryInDunzo, getOrderById, getFullfillmentOrderById, updateOrderDeliverStatus, updateShopifyOrderTags } = CommonHelper;
 
 const Order = require('../models/orders.model');
 const UnConfirmedOrder = require('../models/unconfirmed_orders.controller');
@@ -401,12 +401,16 @@ exports.updateOrderStatus = async function (request, response) {
             })
         }
 
+        let order_no = order.order_no;
+
         let updateObj = {
             order_status: order_status,
             status_updated_at: currentDateTime
         };
 
         if (order_status === 'ACCEPTED') {
+            let order_tag = "Accepted By Distributor";
+
             if (!deliver_by) {
                 return response.send({
                     status: false,
@@ -425,7 +429,7 @@ exports.updateOrderStatus = async function (request, response) {
                 updateObj.deliver_by = deliver_by;
                 updateObj.staff_id = staff_user_id;
 
-                Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
+                Order.updateOne({ _id: order_id }, updateObj, async function (err, data) {
                     if (err) {
                         return response.send({
                             status: false,
@@ -433,6 +437,9 @@ exports.updateOrderStatus = async function (request, response) {
                         })
                     } else {
                         let actionName = order_status.toLowerCase();
+
+                        // Update status in shopify side
+                        await exports.updateOrderTags(order_no, order_tag);
 
                         return response.send({
                             status: true,
@@ -509,6 +516,9 @@ exports.updateOrderStatus = async function (request, response) {
                                     } else {
                                         let actionName = order_status.toLowerCase();
 
+                                        // Update status in shopify side
+                                        await exports.updateOrderTags(order_no, order_tag);
+
                                         return response.send({
                                             status: true,
                                             message: "Order has been " + actionName + " successfully."
@@ -531,7 +541,7 @@ exports.updateOrderStatus = async function (request, response) {
                 });
             }
         } else {
-            Order.updateOne({ _id: order_id }, updateObj, function (err, data) {
+            Order.updateOne({ _id: order_id }, updateObj, async function (err, data) {
                 if (err) {
                     return response.send({
                         status: false,
@@ -540,10 +550,15 @@ exports.updateOrderStatus = async function (request, response) {
                 } else {
                     let actionName = order_status.toLowerCase();
 
+                    if (order_status == "REJECTED_BY") {
+                        // Update status in shopify side
+                        await exports.updateOrderTags(order_no, "Cancelled By Distributor");
+                    }
+
                     return response.send({
                         status: true,
                         message: "Order has been " + actionName + " successfully."
-                    })
+                    });
                 }
             });
         }
@@ -891,8 +906,9 @@ module.exports.sendDeliveryConfirmationOTP = async (request, response) => {
         }
 
         let order_details = JSON.parse(order.order_details);
-        let user_name = order_details.Name;
-        let phone = (order_details.Phone) ? order_details.Phone : '9624684020';
+        let user_name = order_details.shipping_address.first_name + ' ' + order_details.shipping_address.last_name;
+        let phone = order_details.shipping_address.phone;
+        phone = phone.replace(" ", "");
 
         let otp = await CommonHelper.randomNumberGenerator();
 
@@ -938,6 +954,9 @@ module.exports.verifyDeliveryOTP = async (request, response) => {
             return response.send({ status: false, message: "Please enter valid OTP code." });
         }
 
+        let order_no = order.order_no;
+        let order_tag = "Order Delivered By Distributor";
+
         Order.updateOne({ _id: order_id }, { order_otp: null, order_status: "DELIVERED" }, async function (error, result) {
             if (error) {
                 return response.send({ status: false, message: 'Something went wrong with update status.' });
@@ -961,6 +980,9 @@ module.exports.verifyDeliveryOTP = async (request, response) => {
 
                 const transaction = new Transaction(transactionObj);
                 await transaction.save();
+
+                // Update status and fullfillment details
+                await exports.updateShopifyOrderStatus(order_no, order_tag);
 
                 return response.send({
                     status: true,
@@ -1036,6 +1058,11 @@ module.exports.verifyDeliveryBySignature = async (request, response, next) => {
 
                                 const transaction = new Transaction(transactionObj);
                                 await transaction.save();
+
+                                // Update status and fullfillment details
+                                let order_no = order.order_no;
+                                let order_tag = "Order Delivered By Distributor";
+                                await exports.updateShopifyOrderStatus(order_no, order_tag);
 
                                 return response.send({
                                     status: true,
@@ -1134,3 +1161,161 @@ module.exports.updateOrderScheduleByDistributor = async (request, response) => {
         })
     }
 };
+
+module.exports.updateShopifyOrderStatus = async (order_id, status) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Get order details by id
+            getOrderById(order_id).then(async (orderResult) => {
+                if (orderResult.response && orderResult.response.data && orderResult.response.data.errors) {
+                    resolve({
+                        status: false,
+                        message: orderResult.response.data.errors,
+                    });
+                } else {
+                    let orderInfo = orderResult.order;
+                    let line_items = orderInfo.line_items;
+                    let order_tags = orderInfo.tags;
+
+                    // Update status
+                    // Check if status already exists in tags
+                    let orderStatusArr = order_tags.split(',');
+
+                    if (orderStatusArr.includes(status) == false) {
+                        let tags = order_tags;
+
+                        if (order_tags) {
+                            tags = tags + `, ${status}`;
+                        } else {
+                            tags = status;
+                        }
+
+                        let requestObject = {
+                            "order": {
+                                "id": 53715763354,
+                                "tags": tags,
+                            }
+                        };
+
+                        updateShopifyOrderTags(order_id, requestObject).then(resStatus => {
+                            // Update fullfillment status
+                            line_items = line_items.map(data => {
+                                let element = {
+                                    id: data.id
+                                };
+                                return element;
+                            });
+
+                            let requestObject = {
+                                "fulfillment": {
+                                    "location_id": 53715763354,
+                                    "tracking_number": null,
+
+                                    // this you will get from order details
+                                    "line_items": line_items
+                                }
+                            };
+
+                            // Get order fullfillment details
+                            getFullfillmentOrderById(order_id, requestObject).then(async (orderFullfillment) => {
+                                if (orderFullfillment.response && orderFullfillment.response.data && orderFullfillment.response.data.errors) {
+                                    resolve({
+                                        status: false,
+                                        message: orderFullfillment.response.data.errors,
+                                    });
+                                } else {
+                                    if (orderFullfillment.fulfillment) {
+                                        let fullfillment_id = orderFullfillment.fulfillment.id;
+
+                                        // Update delivered status
+                                        updateOrderDeliverStatus(order_id, fullfillment_id).then(async (statusReponse) => {
+                                            resolve({
+                                                status: false,
+                                                message: "Fullfillment details has not been found."
+                                            });
+                                        });
+                                    } else {
+                                        resolve({
+                                            status: false,
+                                            message: "Fullfillment details has not been found."
+                                        });
+                                    }
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+        } catch (error) {
+            resolve({
+                status: false,
+                message: "Something went wrong with schedule order."
+            });
+        }
+    });
+}
+
+module.exports.updateOrderTags = async (order_id, status) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let order_statuses = ["Accepted By Distributor", "Cancelled By Distributor", "Order Delivered By Distributor"];
+
+            if (order_statuses.includes(status) == false) {
+                resolve({
+                    status: false,
+                    message: "Order status has not been matched. Please eneter correct status."
+                });
+            }
+
+            // Get order details by id
+            getOrderById(order_id).then(async (orderResult) => {
+                if (orderResult.response && orderResult.response.data && orderResult.response.data.errors) {
+                    resolve({
+                        status: false,
+                        message: orderResult.response.data.errors,
+                    });
+                } else {
+                    let orderInfo = orderResult.order;
+                    let order_tags = orderInfo.tags;
+
+                    // Check if status already exists in tags
+                    let orderStatusArr = order_tags.split(',');
+
+                    if (orderStatusArr.includes(status) == false) {
+                        let tags = order_tags;
+
+                        if (order_tags) {
+                            tags = tags + `, ${status}`;
+                        } else {
+                            tags = status;
+                        }
+
+                        let requestObject = {
+                            "order": {
+                                "id": 53715763354,
+                                "tags": tags,
+                            }
+                        };
+
+                        updateShopifyOrderTags(order_id, requestObject).then(resStatus => {
+                            resolve({
+                                status: true,
+                                message: "Status has been updated successfully.",
+                            });
+                        });
+                    } else {
+                        resolve({
+                            status: false,
+                            message: "Order status is already updated."
+                        });
+                    }
+                }
+            });
+        } catch (error) {
+            resolve({
+                status: false,
+                message: "Something went wrong with schedule order.",
+            });
+        }
+    });
+}

@@ -150,3 +150,72 @@ module.exports.getOrderById = (order_id) => {
         return error;
     }
 }
+
+/** 
+ * Get Order By Id 
+ **/
+module.exports.updateShopifyOrderTags = (order_id, request) => {
+    try {
+        let url = `https://ff7e98c56279a0a52ce6c7a55be542f3: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@myfitness-official-store.myshopify.com/admin/api/2021-07/orders/${order_id}.json`
+
+        // Make a request for a user with a given ID
+        const promise = axios({
+            method: 'PUT',
+            url: url,
+            data: request
+        });
+
+        const dataPromise = promise.then((response) => response.data).catch((error) => error);
+        return dataPromise;
+    } catch (error) {
+        return error;
+    }
+}
+
+/** 
+ * Get Fullfillment Order By Id 
+ **/
+module.exports.getFullfillmentOrderById = (order_id, request) => {
+    try {
+        let url = `https://ff7e98c56279a0a52ce6c7a55be542f3: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@myfitness-official-store.myshopify.com/admin/api/2021-07/orders/${order_id}/fulfillments.json`
+
+        // Make a request for a user with a given ID
+        const promise = axios({
+            method: 'POST',
+            url: url,
+            // `Data`
+            data: request
+        });
+
+        const dataPromise = promise.then((response) => response.data).catch((error) => error);
+        return dataPromise;
+    } catch (error) {
+        return error;
+    }
+}
+
+/** 
+ * Update Delivered Status
+ **/
+module.exports.updateOrderDeliverStatus = (order_id, fullfillment_id) => {
+    try {
+        let url = `https://ff7e98c56279a0a52ce6c7a55be542f3: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@myfitness-official-store.myshopify.com/admin/api/2021-07/orders/${order_id}/fulfillments/${fullfillment_id}/events.json`;
+
+        // Make a request for a user with a given ID
+        const promise = axios({
+            method: 'POST',
+            url: url,
+            // `Data`
+            data: {
+                "event": {
+                    "status": "delivered"
+                }
+            }
+        });
+
+        const dataPromise = promise.then((response) => response.data).catch((error) => error);
+        return dataPromise;
+    } catch (error) {
+        return error;
+    }
+}
