@@ -7,7 +7,16 @@ const fs = require('fs');
 const formidable = require('formidable');
 
 const CommonHelper = require('../helpers/common.helper');
-const { generateDunzoToken, createOrderDeliveryInDunzo, getOrderById, getFullfillmentOrderById, updateOrderDeliverStatus, updateShopifyOrderTags } = CommonHelper;
+const {
+    generateDunzoToken,
+    createOrderDeliveryInDunzo,
+    getOrderById,
+    getFullfillmentOrderById,
+    updateOrderDeliverStatus,
+    updateShopifyOrderTags,
+    getOrderTransactionById,
+    checkOrderCODStatus
+} = CommonHelper;
 
 const Order = require('../models/orders.model');
 const UnConfirmedOrder = require('../models/unconfirmed_orders.controller');
@@ -1106,6 +1115,9 @@ module.exports.verifyDeliveryOTP = async (request, response) => {
                 // Update status and fullfillment details
                 await exports.updateShopifyOrderStatus(order_no, order_tag);
 
+                // Update COD order status
+                await exports.checkCODTransactionOfOrder(order_no);
+
                 return response.send({
                     status: true,
                     message: "Order has been delivered successfully."
@@ -1185,6 +1197,9 @@ module.exports.verifyDeliveryBySignature = async (request, response, next) => {
                                 let order_no = order.order_no;
                                 let order_tag = "Order Delivered By Distributor";
                                 await exports.updateShopifyOrderStatus(order_no, order_tag);
+
+                                // Update COD order status
+                                await exports.checkCODTransactionOfOrder(order_no);
 
                                 return response.send({
                                     status: true,
@@ -1284,6 +1299,14 @@ module.exports.updateOrderScheduleByDistributor = async (request, response) => {
     }
 };
 
+/**
+ * Update Order's Status
+ *
+ * @param order_id, 
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-29
+ */
 module.exports.updateShopifyOrderStatus = async (order_id, status) => {
     return new Promise(async (resolve, reject) => {
         try {
@@ -1377,6 +1400,84 @@ module.exports.updateShopifyOrderStatus = async (order_id, status) => {
     });
 }
 
+/**
+ * Update COD order transaction details
+ *
+ * @param order_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-30
+ */
+module.exports.checkCODTransactionOfOrder = async (order_id) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            getOrderById(order_id).then((orderResult) => {
+                if (orderResult && orderResult.order) {
+                    let orderInfo = orderResult.order;
+                    let order_tags = orderInfo.tags;
+
+                    if (order_tags.includes("✅ Confirmed-CODfirm")) {
+                        getOrderTransactionById(order_id).then((transaction) => {
+                            if (transaction.transactions && transaction.transactions.length > 0) {
+                                let transactionDetails = transaction.transactions[0];
+
+                                let id = transactionDetails.id;
+                                let amount = transactionDetails.amount;
+
+                                let requestObj = {
+                                    "transaction": {
+                                        "currency": "INR",
+                                        "amount": amount,
+                                        "kind": "sale",
+                                        "source": "external",
+                                        "parent_id": id
+                                    }
+                                }
+
+                                checkOrderCODStatus(order_id, requestObj).then(result => {
+                                    resolve({
+                                        status: true,
+                                        message: "Success",
+                                        transaction: result
+                                    });
+                                });
+                            } else {
+                                resolve({
+                                    status: false,
+                                    message: "failed"
+                                });
+                            }
+                        });
+                    } else {
+                        resolve({
+                            status: false,
+                            message: "failed"
+                        });
+                    }
+                } else {
+                    resolve({
+                        status: false,
+                        message: "failed"
+                    });
+                }
+            });
+        } catch (error) {
+            resolve({
+                status: false,
+                message: "failed"
+            });
+        }
+    });
+};
+
+/**
+ * Update order tags
+ *
+ * @param order_id, 
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-09-29
+ */
 module.exports.updateOrderTags = async (order_id, status) => {
     return new Promise(async (resolve, reject) => {
         try {

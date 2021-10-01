@@ -17,7 +17,6 @@ router.post('/send/delivery/otp', [checkToken, orderValidation], orderController
 router.post('/verify/delivery/otp', [checkToken, verifyDeliveryOTPValidation], orderController.verifyDeliveryOTP);
 router.post('/verify/delivery/signature', [checkToken], orderController.verifyDeliveryBySignature);
 router.post('/update/schedule/by/distributor', [checkToken, updateOrderScheduleByDistributorValidation], orderController.updateOrderScheduleByDistributor);
-router.post('/update/shopify/status', orderController.updateShopifyOrderStatus);
-router.post('/update/tags', orderController.updateOrderTags);
+// router.post('/update/shopify/status', orderController.checkCODTransactionOfOrder);
 
 module.exports = router;
