@@ -6,7 +6,7 @@ const { getStaffValidation, updateOrderScheduleByDistributorValidation, createOr
 const { checkToken } = require('../middleware/auth');
 
 router.post('/place', orderController.placeOrder);
-// router.get('/place', orderController.placeOrderV2);
+router.get('/place/direct', orderController.placeOrderV2);
 router.post('/get/by/distributor', [checkToken, getOrderValidation], orderController.getOrders);
 router.post('/get/by/staff', [checkToken, getStaffValidation], orderController.getStaffOrders);
 router.post('/update/status', [updateOrderStatusValidation], orderController.updateOrderStatus);
