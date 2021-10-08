@@ -1001,6 +1001,112 @@ exports.getDistributorTotalOrders = async function (request, response) {
     }
 };
 
+/**
+ * Brand Dashboard.
+ *
+ * @param brand_user_id
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-10-08
+ */
+exports.getBrandOrderReports = async function (request, response) {
+    try {
+        let { brand_user_id } = request.body;
+        let today = moment().utcOffset("+05:30").format('YYYY-MM-DD');
+
+        let startDate = `${today}T00:00:00.000Z`;
+        let endDate = `${today}T23:59:59.000Z`;
+
+        User.find({ brand_user_id: brand_user_id }, { _id: 1 }, async function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Distributor has not been found.",
+                })
+            } else {
+                if (data && data.length > 0) {
+                    let results = {};
+
+                    let distributors = data.map(user => user._id);
+
+                    // Get Total Orders
+                    let totalOrders = await Order.find({
+                        distributor_id: distributors
+                    }).count();
+                    results.total_orders = totalOrders;
+
+                    // Get Total Pending Orders
+                    let totalPendingOrders = await Order.find({
+                        distributor_id: distributors,
+                        order_status: "PENDING",
+                    }).count();
+                    results.total_pending_orders = totalPendingOrders;
+
+                    // Get Total Accepted Orders
+                    let totalAcceptedOrders = await Order.find({
+                        distributor_id: distributors,
+                        order_status: "ACCEPTED",
+                    }).count();
+                    results.total_accepted_orders = totalAcceptedOrders;
+
+                    // Get Total Delivered Orders
+                    let totalDeliveredOrders = await Order.find({
+                        distributor_id: distributors,
+                        order_status: "DELIVERED",
+                    }).count();
+                    results.total_delivered_orders = totalDeliveredOrders;
+
+                    // Get Total Canceled Orders
+                    let totalRejectedOrders = await Order.find({
+                        distributor_id: distributors,
+                        order_status: "REJECTED_BY",
+                    }).count();
+                    results.total_rejected_orders = totalRejectedOrders;
+
+                    // Get today's total orders
+                    let totalOrdersOfToday = await Order.find({
+                        distributor_id: distributors,
+                        order_datetime: {
+                            $gte: startDate,
+                            $lt: endDate
+                        }
+                    }).count();
+                    results.todays_orders = totalOrdersOfToday;
+
+                    // Get today's total pending orders
+                    let totalPendingOrdersOfToday = await Order.find({
+                        distributor_id: distributors,
+                        order_status: "PENDING",
+                        order_datetime: {
+                            $gte: startDate,
+                            $lt: endDate
+                        }
+                    }).count();
+                    results.todays_pending_orders = totalPendingOrdersOfToday;
+
+                    // Get today's total Delivered orders
+                    let totalDeliveredOrdersOfToday = await Order.find({
+                        distributor_id: distributors,
+                        order_status: "DELIVERED",
+                        order_datetime: {
+                            $gte: startDate,
+                            $lt: endDate
+                        }
+                    }).count();
+                    results.todays_delivered_orders = totalDeliveredOrdersOfToday;
+
+                    return response.send({ status: true, message: 'Brand Dashboard Report', results });
+                } else {
+                    return response.send({ status: false, message: 'User has not been found.' });
+                }
+            }
+        });
+    } catch (error) {
+        console.log(error)
+        return response.send({ status: false, message: "Something went wrong." });
+    }
+};
+
 function getDates(startDate, endDate) {
     const dates = []
     let currentDate = startDate;

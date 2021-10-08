@@ -26,11 +26,15 @@ const MONGO_HOST = process.env.MONGO_HOST;
 const MONGO_PORT = process.env.MONGO_PORT;
 const DB_NAME = process.env.DB_NAME;
 
-const mongoURL = `mongodb://${MONGO_USER_NAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOST}:${MONGO_PORT}`;
-mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true, dbName: DB_NAME });
+// For Server
+// const mongoURL = `mongodb://${MONGO_USER_NAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOST}:${MONGO_PORT}`;
+// mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true, dbName: DB_NAME });
+
+// For Local
+const MONGODB_URI = process.env.MONGODB_URI;
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
-
 
 db.once('connected', async function (err) {
     if (err) {
