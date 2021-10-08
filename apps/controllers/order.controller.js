@@ -33,48 +33,48 @@ const DistributorPincode = require('../models/distributor_pincodes.model');
  * @version 1.0
  * @since   2021-07-26
  */
-exports.placeOrderV2 = async function (request, response) {
-    try {
-        var { amount, pincode, order_details } = request.body;
-        order_details = JSON.stringify(order_details);
+// exports.placeOrder = async function (request, response) {
+//     try {
+//         var { amount, pincode, order_details } = request.body;
+//         order_details = JSON.stringify(order_details);
 
-        // Find distributor using pincode
-        let distributor = await DistributorPincode.findOne({ pin_code: pincode });
+//         // Find distributor using pincode
+//         let distributor = await DistributorPincode.findOne({ pin_code: pincode });
 
-        if (!distributor) {
-            return response.send({
-                status: false,
-                message: "Distributor not found."
-            })
-        }
+//         if (!distributor) {
+//             return response.send({
+//                 status: false,
+//                 message: "Distributor not found."
+//             })
+//         }
 
-        let distributor_id = distributor.distributor_id;
+//         let distributor_id = distributor.distributor_id;
 
-        let createOrderObj = {
-            amount,
-            pincode,
-            order_details,
-            distributor_id
-        };
+//         let createOrderObj = {
+//             amount,
+//             pincode,
+//             order_details,
+//             distributor_id
+//         };
 
-        const order = new Order(createOrderObj)
-        await order.save();
+//         const order = new Order(createOrderObj)
+//         await order.save();
 
-        if (order) {
-            return response.send({
-                status: true,
-                message: "Order has been created successfully."
-            });
-        } else {
-            return response.send({
-                status: false,
-                message: "Something went wrong. Order has not been created."
-            });
-        }
-    } catch (error) {
-        return response.send({ status: false, message: "Something went wrong.", error })
-    }
-};
+//         if (order) {
+//             return response.send({
+//                 status: true,
+//                 message: "Order has been created successfully."
+//             });
+//         } else {
+//             return response.send({
+//                 status: false,
+//                 message: "Something went wrong. Order has not been created."
+//             });
+//         }
+//     } catch (error) {
+//         return response.send({ status: false, message: "Something went wrong.", error })
+//     }
+// };
 
 /**
  * create new order v2
