@@ -5,6 +5,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
 
+const expressConfig = require('./apps/config/expressConfig');
 const OrderStatus = require('./apps/models/order_statuses.model');
 const { rejectUnApprovedOrders, checkUnConfiguredOrders } = require('./apps/controllers/order.controller');
 
@@ -19,10 +20,17 @@ var port = process.env['PORT'];
 const app = express();
 
 // Set up mongoose connection
-const mongoDB = process.env.MONGODB_URI;
-mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
+const MONGO_USER_NAME = process.env.MONGO_USER_NAME;
+const MONGO_PASSWORD = process.env.MONGO_PASSWORD;
+const MONGO_HOST = process.env.MONGO_HOST;
+const MONGO_PORT = process.env.MONGO_PORT;
+const DB_NAME = process.env.DB_NAME;
+
+const mongoURL = `mongodb://${MONGO_USER_NAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOST}:${MONGO_PORT}`;
+mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true, dbName: DB_NAME });
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
+
 
 db.once('connected', async function (err) {
     if (err) {
@@ -52,6 +60,8 @@ db.once('connected', async function (err) {
 });
 
 db.on('error', console.error.bind(console, '✘ MongoDB connection error:'));
+
+expressConfig(app);
 
 // parse requests of content-type - application/json
 app.use(bodyParser.json());
