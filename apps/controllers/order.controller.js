@@ -8,7 +8,6 @@ const formidable = require('formidable');
 
 const CommonHelper = require('../helpers/common.helper');
 const {
-    generateDunzoToken,
     createOrderDeliveryInDunzo,
     getOrderById,
     getFullfillmentOrderById,
@@ -24,6 +23,7 @@ const User = require('../models/user.model');
 const Role = require('../models/roles.model');
 const Transaction = require('../models/transactions.model');
 const DistributorPincode = require('../models/distributor_pincodes.model');
+const DeliveryPartners = require('../models/delivery_partners.model');
 
 /**
  * create new order
@@ -579,6 +579,36 @@ exports.updateOrderStatus = async function (request, response) {
                     }
                 });
             } else if (deliver_by == 'DUNZO') {
+                let distributor_id = order.distributor_id;
+
+                let distributor = await User.findOne({ _id: distributor_id }, { brand_user_id: 1 });
+
+                if (!distributor && !distributor.brand_user_id) {
+                    return response.send({
+                        status: false,
+                        message: "Distributor has not been found."
+                    })
+                }
+
+                let deliveryPartner = await DeliveryPartners.findOne(
+                    { brand_user_id: distributor.brand_user_id },
+                    {
+                        host_name: 1,
+                        client_id: 1,
+                        client_password: 1,
+                    }
+                );
+
+                if (!deliveryPartner) {
+                    return response.send({
+                        status: false,
+                        message: "Delivery partner has not been found. Please setup delivery partner and try again.",
+                    })
+                }
+
+                // Verfiy Delivery Partner
+                let { host_name, client_id, client_password } = deliveryPartner;
+
                 let { pickup_location, drop_location } = request.body;
                 let deliveryDateTime = moment().utcOffset("+05:30").add(1, 'hour').format("YYYY-MM-DD HH:mm:ss");
 
@@ -588,7 +618,7 @@ exports.updateOrderStatus = async function (request, response) {
                 let unixTime = moment(expected_delivery_time).unix();
 
                 // GENERATE DUNZO TOKEN
-                await generateDunzoToken().then(async (data) => {
+                await CommonHelper.verfiyDeliveryPartner(host_name, client_id, client_password).then(async (data) => {
                     if (data && data.token) {
                         let token = data.token;
                         let reference_id = moment().utcOffset("+05:30").unix();
@@ -618,7 +648,7 @@ exports.updateOrderStatus = async function (request, response) {
                         };
 
                         // CREATE TASK
-                        await createOrderDeliveryInDunzo(token, locationObj).then(result => {
+                        await createOrderDeliveryInDunzo(client_id, host_name, token, locationObj).then(result => {
                             if (result.code) {
                                 return response.send({
                                     status: false,

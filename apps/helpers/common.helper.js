@@ -70,14 +70,10 @@ module.exports.sendAcceptOrderOTP = (user_name, phone, otp) => {
 }
 
 /** 
- * Generate Dunzo Token
+ * Verfiy Delivery Partner
  **/
-module.exports.generateDunzoToken = () => {
+module.exports.verfiyDeliveryPartner = (hostName, clientId, clientPassword) => {
     try {
-        let hostName = process.env.HOST_NAME;
-        let clientId = process.env.CLIENT_ID;
-        let clientPassword = process.env.CLIENT_PASSWORD;
-
         // Make a request for a user with a given ID
         const promise = axios({
             url: hostName + '/api/v1/token',
@@ -91,22 +87,19 @@ module.exports.generateDunzoToken = () => {
                 'Accept-Language': 'en_US'
             },
         });
-        const dataPromise = promise.then((response) => response.data).catch((error) => console.log(error));
+        const dataPromise = promise.then((response) => response.data).catch((error) => error);
 
         return dataPromise;
     } catch (error) {
-        console.log(error);
+        return null;
     }
 }
 
 /** 
  * Create Deivery Order in DUNZO
  **/
-module.exports.createOrderDeliveryInDunzo = (token, locationObj) => {
+module.exports.createOrderDeliveryInDunzo = (clientId, hostName, token, locationObj) => {
     try {
-        let clientId = process.env.CLIENT_ID;
-        let hostName = process.env.HOST_NAME;
-
         // Make a request for a user with a given ID
         const promise = axios({
             method: 'POST',
@@ -124,7 +117,7 @@ module.exports.createOrderDeliveryInDunzo = (token, locationObj) => {
             data: locationObj
         });
 
-        const dataPromise = promise.then((response) => response.data).catch((error) => console.log(error));
+        const dataPromise = promise.then((response) => response.data).catch((error) => error);
         return dataPromise;
     } catch (error) {
         return null;

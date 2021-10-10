@@ -73,8 +73,10 @@ exports.createBrands = Validate([
 exports.createDeliveryPartnerValidation = Validate([
     body("brand_id", "Brand id is required").isString().trim().exists().notEmpty(),
     body("brand_user_id", "Brand user id is required").isString().trim().exists().notEmpty(),
-    body("api_key", "API key is required").isString().trim().exists().notEmpty(),
-    body("partner_name", "Partner name is required").isString().trim().exists().notEmpty(),
+    body("delivery_partner_name", "Partner name is required").isString().trim().exists().notEmpty(),
+    body("host_name", "Host name is required").isString().trim().exists().notEmpty(),
+    body("client_id", "Client id is required").isString().trim().exists().notEmpty(),
+    body("client_password", "Client password is required").isString().trim().exists().notEmpty(),
 ]);
 
 /**

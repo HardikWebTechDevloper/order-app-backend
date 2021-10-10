@@ -1,5 +1,6 @@
 const Brand = require('../../models/brands.model');
 const DeliveryPartner = require('../../models/delivery_partners.model');
+const { verfiyDeliveryPartner } = require('../../helpers/common.helper');
 
 /**
  * This function create new brand.
@@ -131,40 +132,42 @@ exports.updateBrand = async function (request, response) {
  */
 exports.manageBrandDeliveryPartner = async function (request, response) {
     try {
-        const { brand_id, api_key, partner_name, is_active } = request.body;
+        const { brand_id, delivery_partner_name, host_name, client_id, client_password } = request.body;
 
-        let checkDeliveryPartner = await DeliveryPartner.countDocuments({ brand_id });
+        verfiyDeliveryPartner(host_name, client_id, client_password).then(async (result) => {
+            if (result && result.token) {
+                let checkDeliveryPartner = await DeliveryPartner.countDocuments({ brand_id });
 
-        if (checkDeliveryPartner > 0) {
-            let updateClause = {
-                api_key, 
-                partner_name
-            };
+                if (checkDeliveryPartner > 0) {
+                    let updateClause = {
+                        delivery_partner_name,
+                        host_name,
+                        client_id,
+                        client_password
+                    };
 
-            if (is_active == true) {
-                updateClause.is_active = true;
-            } else {
-                updateClause.is_active = false;
-            }
-
-            DeliveryPartner.updateOne({ brand_id: brand_id }, updateClause, function (err, data) {
-                if (err) {
-                    return response.send({ status: false, message: 'Something went wrong updating delivery partner.' });
+                    DeliveryPartner.updateOne({ brand_id: brand_id }, updateClause, function (err, data) {
+                        if (err) {
+                            return response.send({ status: false, message: 'Something went wrong updating delivery partner.' });
+                        } else {
+                            return response.send({ status: true, message: 'Delivery partner has been updated successfully.' });
+                        }
+                    });
                 } else {
-                    return response.send({ status: true, message: 'Delivery partner has been updated successfully.' });
+                    let deliveryPartnerObj = request.body;
+                    let deliveryPartner = new DeliveryPartner(deliveryPartnerObj);
+                    await deliveryPartner.save();
+
+                    if (deliveryPartner) {
+                        return response.send({ status: true, message: 'Delivery partner has been saved successfully.', data: deliveryPartner });
+                    } else {
+                        return response.send({ status: false, message: 'Something went wrong saving the delivery partner.' });
+                    }
                 }
-            });
-        } else {
-            let deliveryPartner = new DeliveryPartner(request.body);
-            await deliveryPartner.save();
-
-            if (deliveryPartner) {
-                return response.send({ status: true, message: 'Delivery partner has been saved successfully.', data: deliveryPartner });
             } else {
-                return response.send({ status: false, message: 'Something went wrong saving the delivery partner.' });
+                return response.send({ status: false, message: 'You have entered invalid details. Please enter valid delivery partner details.' });
             }
-        }
-
+        });
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong" })
     }

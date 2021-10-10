@@ -296,7 +296,6 @@ exports.getDistributors = async function (request, response) {
             {
                 "$match": {
                     "$and": [
-                        { "status": { "$eq": true } },
                         datePickerFilter,
                         { "brand_user_id": { "$eq": mongoose.Types.ObjectId(brand_user_id) } }
                     ]
