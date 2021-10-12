@@ -186,53 +186,53 @@ exports.placeOrder = async function (request, response) {
 
             console.log("checkOrder", checkOrder);
 
-            if (checkOrder) {
-                console.log({
-                    status: false,
-                    message: "Order is already exists in our records.",
-                });
-                return response.send({
-                    status: false,
-                    message: "Order is already exists in our records.",
-                });
-            }
+            if (!checkOrder) {
+                // UnConfirmedOrders
+                let unconfirmedOrderObj = {
+                    order_no: order_id,
+                    payment_mode,
+                    pincode,
+                    order_details,
+                    order_datetime: orderInfo.created_at,
+                };
 
-            // UnConfirmedOrders
-            let unconfirmedOrderObj = {
-                order_no: order_id,
-                payment_mode,
-                pincode,
-                order_details,
-                order_datetime: orderInfo.created_at,
-            };
+                console.log("unconfirmedOrderObj", unconfirmedOrderObj);
 
-            const unconfirmed_order = new UnConfirmedOrder(unconfirmedOrderObj)
-            await unconfirmed_order.save();
+                const unconfirmed_order = new UnConfirmedOrder(unconfirmedOrderObj)
+                await unconfirmed_order.save();
 
-            console.log("unconfirmed_order", unconfirmed_order);
+                console.log("unconfirmed_order", unconfirmed_order);
 
-            if (unconfirmed_order) {
-                console.log({
-                    status: true,
-                    message: "Order has been created successfully."
-                });
-                return response.send({
-                    status: true,
-                    message: "Order has been created successfully."
-                });
+                if (unconfirmed_order) {
+                    console.log({
+                        status: true,
+                        message: "Order has been created successfully."
+                    });
+                    return response.send({
+                        status: true,
+                        message: "Order has been created successfully."
+                    });
+                } else {
+                    console.log({
+                        status: false,
+                        message: "Something went wrong. Order has not been created."
+                    });
+                    return response.send({
+                        status: false,
+                        message: "Something went wrong. Order has not been created."
+                    });
+                }
             } else {
                 console.log({
                     status: false,
-                    message: "Something went wrong. Order has not been created."
+                    message: "Order is already exists in our records.",
                 });
                 return response.send({
                     status: false,
-                    message: "Something went wrong. Order has not been created."
+                    message: "Order is already exists in our records.",
                 });
             }
         }
-
-
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong.", error })
     }
