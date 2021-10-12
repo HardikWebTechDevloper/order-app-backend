@@ -146,7 +146,7 @@ exports.placeOrder = async function (request, response) {
 
         console.log("tags======>", tags)
 
-        if (tags && tags == "✅ Confirmed-CODfirm") {
+        if (tags == "✅ Confirmed-CODfirm") {
             let distributor_id = distributor.distributor_id;
 
             let createOrderObj = {
@@ -183,6 +183,8 @@ exports.placeOrder = async function (request, response) {
         } else {
             // Check order
             let checkOrder = await UnConfirmedOrder.findOne({ order_no: order_id });
+
+            console.log("checkOrder", checkOrder);
 
             if (checkOrder) {
                 console.log({
