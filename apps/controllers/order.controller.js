@@ -234,6 +234,7 @@ exports.placeOrder = async function (request, response) {
             }
         }
     } catch (error) {
+        console.log("Catch error", error);
         return response.send({ status: false, message: "Something went wrong.", error })
     }
 };
