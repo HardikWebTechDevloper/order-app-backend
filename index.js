@@ -7,7 +7,7 @@ const cron = require('node-cron');
 
 const expressConfig = require('./apps/config/expressConfig');
 const OrderStatus = require('./apps/models/order_statuses.model');
-const { rejectUnApprovedOrders, checkUnConfiguredOrders } = require('./apps/controllers/order.controller');
+const { rejectUnApprovedOrders, checkUnConfirmedOrders } = require('./apps/controllers/order.controller');
 
 // routes
 const routes = require('./apps/routes/index.route');
@@ -77,7 +77,7 @@ app.use(cors());
 app.use('/api/v1', routes);
 
 cron.schedule('* * * * *', rejectUnApprovedOrders);
-cron.schedule('0 */15 * * *', checkUnConfiguredOrders);
+cron.schedule('0 */15 * * *', checkUnConfirmedOrders);
 
 app.listen(port, () => {
     console.log('✓ Server is up and running on port number ' + port);

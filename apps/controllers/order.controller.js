@@ -87,7 +87,6 @@ const DeliveryPartners = require('../models/delivery_partners.model');
 exports.placeOrder = async function (request, response) {
     try {
         let orderInfo = request.body;
-        console.log(`orderResult:`, orderInfo);
 
         let pincode = orderInfo.shipping_address.zip;
         let tags = orderInfo.tags;
@@ -96,10 +95,6 @@ exports.placeOrder = async function (request, response) {
         let order_details = JSON.stringify(orderInfo);
 
         if (!order_id) {
-            console.log({
-                status: false,
-                message: "Order id can not be empty.",
-            });
             return response.send({
                 status: false,
                 message: "Order id can not be empty.",
@@ -110,10 +105,6 @@ exports.placeOrder = async function (request, response) {
         let checkOrder = await Order.findOne({ order_no: order_id });
 
         if (checkOrder) {
-            console.log({
-                status: false,
-                message: "Order is already exists in our records.",
-            });
             return response.send({
                 status: false,
                 message: "Order is already exists in our records.",
@@ -124,17 +115,11 @@ exports.placeOrder = async function (request, response) {
         let distributor = await DistributorPincode.findOne({ pin_code: pincode });
 
         if (!distributor) {
-            console.log({
-                status: false,
-                message: "Distributor has not been found."
-            })
             return response.send({
                 status: false,
                 message: "Distributor has not been found."
             })
         }
-
-        console.log("distributor", distributor);
 
         // Payment Mode
         let payment_mode;
@@ -144,8 +129,6 @@ exports.placeOrder = async function (request, response) {
         } else if (financial_status == 'paid') {
             payment_mode = "prepaid";
         }
-
-        console.log("tags======>", tags)
 
         if (tags == "✅ Confirmed-CODfirm") {
             let distributor_id = distributor.distributor_id;
@@ -163,19 +146,11 @@ exports.placeOrder = async function (request, response) {
             await order.save();
 
             if (order) {
-                console.log({
-                    status: true,
-                    message: "Order has been created successfully."
-                });
                 return response.send({
                     status: true,
                     message: "Order has been created successfully."
                 });
             } else {
-                console.log({
-                    status: false,
-                    message: "Something went wrong. Order has not been created."
-                });
                 return response.send({
                     status: false,
                     message: "Something went wrong. Order has not been created."
@@ -184,8 +159,6 @@ exports.placeOrder = async function (request, response) {
         } else {
             // Check order
             let checkOrder = await UnConfirmedOrder.findOne({ order_no: order_id });
-
-            console.log("checkOrder", checkOrder);
 
             if (!checkOrder) {
                 // UnConfirmedOrders
@@ -197,37 +170,21 @@ exports.placeOrder = async function (request, response) {
                     order_datetime: orderInfo.created_at,
                 };
 
-                console.log("unconfirmedOrderObj", unconfirmedOrderObj);
-
                 const unconfirmed_order = new UnConfirmedOrder(unconfirmedOrderObj)
                 await unconfirmed_order.save();
 
-                console.log("unconfirmed_order", unconfirmed_order);
-
                 if (unconfirmed_order) {
-                    console.log({
-                        status: true,
-                        message: "Order has been created successfully."
-                    });
                     return response.send({
                         status: true,
                         message: "Order has been created successfully."
                     });
                 } else {
-                    console.log({
-                        status: false,
-                        message: "Something went wrong. Order has not been created."
-                    });
                     return response.send({
                         status: false,
                         message: "Something went wrong. Order has not been created."
                     });
                 }
             } else {
-                console.log({
-                    status: false,
-                    message: "Order is already exists in our records.",
-                });
                 return response.send({
                     status: false,
                     message: "Order is already exists in our records.",
@@ -235,7 +192,6 @@ exports.placeOrder = async function (request, response) {
             }
         }
     } catch (error) {
-        console.log("Catch error", error);
         return response.send({ status: false, message: "Something went wrong.", error })
     }
 };
@@ -379,7 +335,7 @@ exports.placeOrderV2 = async function (request, response) {
  * @version 1.0
  * @since   2021-09-16
  */
-exports.checkUnConfiguredOrders = async () => {
+exports.checkUnConfirmedOrders = async () => {
     try {
         console.log("✅ ORDER CRON STARTED:: ", moment().utcOffset("+05:30").format("YYYY-MM-DD HH:mm:ss"));
 
@@ -909,7 +865,6 @@ exports.getDistributorTransactions = async function (request, response) {
             });
         }
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong." });
     }
 };
@@ -1174,7 +1129,6 @@ exports.getBrandOrderReports = async function (request, response) {
             }
         });
     } catch (error) {
-        console.log(error)
         return response.send({ status: false, message: "Something went wrong." });
     }
 };
