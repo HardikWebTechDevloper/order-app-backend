@@ -87,7 +87,7 @@ const DeliveryPartners = require('../models/delivery_partners.model');
 exports.placeOrder = async function (request, response) {
     try {
         let orderInfo = request.body;
-        console.log(`orderResult:${new Date()}`, orderInfo);
+        console.log(`orderResult:`, orderInfo);
 
         if (orderInfo && orderInfo.id) {
             let orderInfo = orderResult;
