@@ -93,6 +93,7 @@ exports.placeOrder = async function (request, response) {
         let tags = orderInfo.tags;
         let financial_status = orderInfo.financial_status;
         let order_id = orderInfo.id;
+        let order_details = JSON.stringify(orderInfo);
 
         if (!order_id) {
             console.log({
