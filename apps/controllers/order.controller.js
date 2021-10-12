@@ -89,7 +89,6 @@ exports.placeOrder = async function (request, response) {
         let orderInfo = request.body;
         console.log(`orderResult:`, orderInfo);
 
-        let orderInfo = orderResult;
         let pincode = orderInfo.shipping_address.zip;
         let tags = orderInfo.tags;
         let financial_status = orderInfo.financial_status;
