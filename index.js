@@ -26,13 +26,15 @@ const MONGO_HOST = process.env.MONGO_HOST;
 const MONGO_PORT = process.env.MONGO_PORT;
 const DB_NAME = process.env.DB_NAME;
 
-// For Server
-const mongoURL = `mongodb://${MONGO_USER_NAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOST}:${MONGO_PORT}`;
-mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true, dbName: DB_NAME });
-
-// For Local
-// const MONGODB_URI = process.env.MONGODB_URI;
-// mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+if (process.env.SERVER == 'production') {
+    // Production Server
+    const mongoURL = `mongodb://${MONGO_USER_NAME}:${encodeURIComponent(MONGO_PASSWORD)}@${MONGO_HOST}:${MONGO_PORT}`;
+    mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true, dbName: DB_NAME });
+} else {
+    // Development Server
+    const MONGODB_URI = process.env.MONGODB_URI;
+    mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+}
 
 mongoose.Promise = global.Promise;
 const db = mongoose.connection;
@@ -77,7 +79,7 @@ app.use(cors());
 app.use('/api/v1', routes);
 
 cron.schedule('* * * * *', rejectUnApprovedOrders);
-cron.schedule('* * * * *', checkUnConfirmedOrders);
+// cron.schedule('* * * * *', checkUnConfirmedOrders);
 
 app.listen(port, () => {
     console.log('✓ Server is up and running on port number ' + port);

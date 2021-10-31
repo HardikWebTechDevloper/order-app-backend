@@ -4,11 +4,11 @@ const Schema = mongoose.Schema;
 let OrdersSchema = new Schema({
     order_datetime: {
         type: Date,
-        default: Date.now()
+        required: false,
     },
     order_status: {
         type: String,
-        enum: ['PENDING', 'ACCEPTED', 'REJECTED_BY', 'NOT_ACCEPTED_BY', 'SCHEDULED', 'DELIVERED', 'RETURN'],
+        enum: ['PENDING', 'ACCEPTED', 'REJECTED_BY', 'NOT_ACCEPTED_BY', 'SCHEDULED', 'DELIVERED', 'RETURN', 'CANCELLED'],
         default: 'PENDING'
     },
     order_no: {

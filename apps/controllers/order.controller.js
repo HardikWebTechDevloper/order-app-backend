@@ -33,7 +33,7 @@ const DeliveryPartners = require('../models/delivery_partners.model');
  * @version 1.0
  * @since   2021-07-26
  */
-// exports.placeOrder = async function (request, response) {
+// exports.placeOrder = async (request, response) => {
 //     try {
 //         var { amount, pincode, order_details } = request.body;
 //         order_details = JSON.stringify(order_details);
@@ -84,7 +84,7 @@ const DeliveryPartners = require('../models/delivery_partners.model');
  * @version 1.0
  * @since   2021-07-26
  */
-exports.placeOrder = async function (request, response) {
+exports.placeOrder = async (request, response) => {
     try {
         let orderInfo = request.body;
 
@@ -93,6 +93,7 @@ exports.placeOrder = async function (request, response) {
         let financial_status = orderInfo.financial_status;
         let order_id = orderInfo.id;
         let order_details = JSON.stringify(orderInfo);
+        let orderDateTime = (orderInfo.created_at) ? moment(orderInfo.created_at).format("YYYY-MM-DD HH:mm:ss") : moment().format("YYYY-MM-DD HH:mm:ss");
 
         if (!order_id) {
             return response.send({
@@ -134,6 +135,7 @@ exports.placeOrder = async function (request, response) {
             let distributor_id = distributor.distributor_id;
 
             let createOrderObj = {
+                order_datetime: orderDateTime,
                 amount: orderInfo.total_outstanding,
                 pincode: pincode,
                 order_details,
@@ -204,7 +206,7 @@ exports.placeOrder = async function (request, response) {
  * @version 1.0
  * @since   2021-07-26
  */
-exports.placeOrderV2 = async function (request, response) {
+exports.placeOrderV2 = async (request, response) => {
     try {
         var { order_id } = request.query;
 
@@ -238,6 +240,7 @@ exports.placeOrderV2 = async function (request, response) {
                 let pincode = orderInfo.shipping_address.zip;
                 let tags = orderInfo.tags;
                 let financial_status = orderInfo.financial_status;
+                let orderDateTime = (orderInfo.created_at) ? moment(orderInfo.created_at).format("YYYY-MM-DD HH:mm:ss") : moment().format("YYYY-MM-DD HH:mm:ss");
 
                 // Find distributor using pincode
                 let distributor = await DistributorPincode.findOne({ pin_code: pincode });
@@ -262,6 +265,7 @@ exports.placeOrderV2 = async function (request, response) {
                     let distributor_id = distributor.distributor_id;
 
                     let createOrderObj = {
+                        order_datetime: orderDateTime,
                         amount: orderInfo.total_outstanding,
                         pincode: pincode,
                         order_details,
@@ -324,6 +328,83 @@ exports.placeOrderV2 = async function (request, response) {
         });
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong.", error })
+    }
+};
+
+exports.updateOrder = async (request, response) => {
+    try {
+        let orderInfo = request.body;
+        let order_id = orderInfo.id;
+
+        getOrderById(order_id).then(async (orderResult) => {
+            if (orderResult && orderResult.order) {
+                let orderInfo = orderResult.order;
+                let tags = orderInfo.tags;
+                let orderDateTime = (orderInfo.created_at) ? moment(orderInfo.created_at).format("YYYY-MM-DD HH:mm:ss") : moment().format("YYYY-MM-DD HH:mm:ss");
+
+                if (tags && tags == "✅ Confirmed-CODfirm") {
+                    let order_details = JSON.stringify(orderInfo);
+                    let pincode = orderInfo.shipping_address.zip;
+                    let financial_status = orderInfo.financial_status;
+
+                    // Find distributor using pincode
+                    let distributor = await DistributorPincode.findOne({ pin_code: pincode });
+
+                    if (distributor) {
+                        // Payment Mode
+                        let payment_mode;
+
+                        if (financial_status == 'pending') {
+                            payment_mode = "cod";
+                        } else if (financial_status == 'paid') {
+                            payment_mode = "prepaid";
+                        }
+
+                        let distributor_id = distributor.distributor_id;
+
+                        let orderObj = {
+                            order_datetime: orderDateTime,
+                            amount: orderInfo.total_outstanding,
+                            pincode: pincode,
+                            order_details,
+                            distributor_id,
+                            order_no: order_id,
+                            payment_mode: payment_mode
+                        };
+
+                        // Check order details
+                        let order = await Order.findOne({ order_no: order_id });
+
+                        if (order) {
+                            Order.updateOne({ order_no: order_id }, orderObj, async function (err, data) {
+                                if (err) {
+                                    return response.send({
+                                        status: false,
+                                        message: "Something went wrong. Order status has not been updated."
+                                    })
+                                } else {
+                                    return response.send({ status: true, message: "Order has been updated successfully." });
+                                }
+                            });
+                        } else {
+                            const order = new Order(orderObj)
+                            await order.save();
+
+                            // Remove record
+                            await UnConfirmedOrder.remove({ order_no: order_id });
+
+                            return response.send({ status: true, message: "Order has been placed successfully." });
+                        }
+                    } else {
+                        return response.send({ status: false, message: "Distributor has not been found." });
+                    }
+                } else {
+                    return response.send({ status: false, message: "Order has not been confirmed yet." });
+                }
+            }
+        });
+    } catch (err) {
+        return response.send({ status: false, message: "Something went wrong.", err })
     }
 };
 
@@ -411,7 +492,7 @@ exports.checkUnConfirmedOrders = async () => {
  * @version 1.0
  * @since   2021-07-28
  */
-exports.getOrders = async function (request, response) {
+exports.getOrders = async (request, response) => {
     try {
         let { distributor_id, order_status, start_date, end_date } = request.body;
         let whereClause = { distributor_id };
@@ -470,7 +551,7 @@ exports.getOrders = async function (request, response) {
  * @version 1.0
  * @since   2021-07-28
  */
-exports.getStaffOrders = async function (request, response) {
+exports.getStaffOrders = async (request, response) => {
     try {
         let { staff_id, order_status } = request.body;
         let whereClause = { staff_id };
@@ -516,7 +597,7 @@ exports.getStaffOrders = async function (request, response) {
  * @version 1.0
  * @since   2021-07-28
  */
-exports.updateOrderStatus = async function (request, response) {
+exports.updateOrderStatus = async (request, response) => {
     try {
         let { order_id, order_status, deliver_by, staff_user_id } = request.body;
         let currentDateTime = moment().utcOffset("+05:30").format("YYYY-MM-DD HH:mm:ss");
@@ -734,7 +815,7 @@ exports.updateOrderStatus = async function (request, response) {
  * @version 1.0
  * @since   2021-07-28
  */
-exports.getDistributorTransactions = async function (request, response) {
+exports.getDistributorTransactions = async (request, response) => {
     try {
         let { distributor_id, brand_user_id, start_date, end_date } = request.body;
 
@@ -877,7 +958,7 @@ exports.getDistributorTransactions = async function (request, response) {
  * @version 1.0
  * @since   2021-08-28
  */
-exports.getBrandOrders = async function (request, response) {
+exports.getBrandOrders = async (request, response) => {
     try {
         let { brand_user_id, distributor_ids } = request.body;
 
@@ -930,7 +1011,7 @@ exports.getBrandOrders = async function (request, response) {
  * @version 1.0
  * @since   2021-08-28
  */
-exports.getDistributorTotalOrders = async function (request, response) {
+exports.getDistributorTotalOrders = async (request, response) => {
     try {
         let { distributor_id } = request.body;
         let today = moment().utcOffset("+05:30").format('YYYY-MM-DD');
@@ -1036,7 +1117,7 @@ exports.getDistributorTotalOrders = async function (request, response) {
  * @version 1.0
  * @since   2021-10-08
  */
-exports.getBrandOrderReports = async function (request, response) {
+exports.getBrandOrderReports = async (request, response) => {
     try {
         let { brand_user_id } = request.body;
         let today = moment().utcOffset("+05:30").format('YYYY-MM-DD');
@@ -1673,4 +1754,43 @@ module.exports.updateOrderTags = async (order_id, status) => {
             });
         }
     });
+}
+
+/**
+ * Cancelled Order
+ *
+ * @param order_id, 
+ * @author  Hardik Gadhiya
+ * @version 1.0
+ * @since   2021-10-29
+ */
+module.exports.cancelOrder = async (request, response) => {
+    try {
+        let orderInfo = request.body;
+        console.log("BODY:::::::::", orderInfo);
+
+        let order_no = orderInfo.id;
+
+        Order.updateOne({ order_no: order_no }, { order_status: "CANCELLED" }, async function (err, data) {
+            if (err) {
+                return response.send({
+                    status: false,
+                    message: "Something went wrong. Order status has not been updated."
+                })
+            } else {
+                return response.send({ status: true, message: "Order has been cancelled successfully." });
+            }
+        });
+
+        return response.send({
+            status: true,
+            message: "Order has been canceled successfully",
+        })
+    } catch (err) {
+        return response.send({
+            status: false,
+            message: "Something went wrong with schedule order.",
+            error: err
+        })
+    }
 }

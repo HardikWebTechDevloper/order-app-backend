@@ -7,6 +7,8 @@ const { checkToken } = require('../middleware/auth');
 
 router.post('/place', orderController.placeOrder);
 router.get('/place/direct', orderController.placeOrderV2);
+router.post('/update/details', orderController.updateOrder);
+router.post('/cancel', orderController.cancelOrder);
 router.post('/get/by/distributor', [checkToken, getOrderValidation], orderController.getOrders);
 router.post('/get/by/staff', [checkToken, getStaffValidation], orderController.getStaffOrders);
 router.post('/update/status', [checkToken, updateOrderStatusValidation], orderController.updateOrderStatus);
