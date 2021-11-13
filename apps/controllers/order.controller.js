@@ -984,7 +984,7 @@ exports.getBrandOrders = async (request, response) => {
                     whereClause.distributor_id = distributors;
                 }
 
-                Order.find(whereClause, function (err, orders) {
+                Order.find(whereClause, async function (err, orders) {
                     if (err) {
                         return response.send({
                             status: false,

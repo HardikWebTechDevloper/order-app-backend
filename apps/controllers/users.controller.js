@@ -371,7 +371,7 @@ exports.getStaffList = async function (request, response) {
                     "profilePicture": 1,
                 }
             },
-        ]).then(function (data) {
+        ]).then(async function (data) {
             if (data && data.length > 0) {
                 var apiUrl = await getAttachmentURL();
 
