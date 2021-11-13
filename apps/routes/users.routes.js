@@ -11,7 +11,7 @@ router.post('/distributor/get', [checkToken, getDistributorsValidation], usersCo
 router.post('/distributor/create', [checkToken, createDistributorValidation], usersController.createDistributor);
 router.post('/distributor/update', [checkToken, updateDistributorValidation], usersController.updateDistributor);
 router.post('/get/all', [checkToken], usersController.getUsers);
-router.post('/staff/create', [checkToken, createStaffValidation], usersController.createStaff);
+router.post('/staff/create', [checkToken], usersController.createStaff);
 router.post('/staff/get', [checkToken, getStaffValidation], usersController.getStaffList);
 router.post('/staff/update', [checkToken, updateStaffValidation], usersController.updateStaff);
 router.post('/delete', [checkToken, deleteUser], usersController.deleteUser);

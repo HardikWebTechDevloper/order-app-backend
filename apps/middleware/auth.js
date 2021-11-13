@@ -11,7 +11,7 @@ exports.checkToken = async (req, res, next) => {
             const user = await User.findOne({ _id: data._id, 'tokens.token': token });
             if (!user) {
                 // throw new Error()
-                return res.send({ status: false, message: 'User has not been found.' })
+                return res.send({ status: false, message: 'Token has been expired.' });
             }
             req.user = user
             req.token = token

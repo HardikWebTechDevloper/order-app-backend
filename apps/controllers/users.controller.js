@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const moment = require('moment');
+const path = require("path");
+const fs = require('fs');
+const formidable = require('formidable');
 
 const commonHelper = require('../helpers/common.helper');
 const User = require('../models/user.model');
@@ -364,10 +367,27 @@ exports.getStaffList = async function (request, response) {
                     "distributor_id": 1,
                     "first_name": 1,
                     "last_name": 1,
-                    "phone": 1
+                    "phone": 1,
+                    "profilePicture": 1,
                 }
             },
         ]).then(function (data) {
+            if (data && data.length > 0) {
+                // let newPath = path.join(__dirname, '../../', 'uploads');
+                var apiUrl = request.protocol + '://' + request.get('host') + '/uploads/';
+
+                data = JSON.parse(JSON.stringify(data));
+
+                data = data.map(element => {
+                    if (element.profilePicture) {
+                        element.profilePicture = apiUrl + element.profilePicture;
+                    } else {
+                        element.profilePicture = null;
+                    }
+                    return element;
+                });
+            }
+
             return response.send({ status: true, message: 'Staff found.', data: data });
         });
     } catch (error) {
@@ -416,32 +436,92 @@ exports.getUsers = async function (request, response) {
  */
 exports.createStaff = async function (request, response) {
     try {
-        const { phone, email } = request.body;
-        let body = request.body;
+        const form = formidable.IncomingForm();
 
-        // Search for a user by phone.
-        const userPhoneExists = await User.findOne({ phone });
-        if (userPhoneExists) {
-            return response.send({ status: false, message: 'Phone number is already exists in our records.' });
-        }
+        form.parse(request, async (err, fields, files) => {
+            if (err) {
+                return response.send({ status: false, message: 'Something went wrong with update staff profile.', error: err });
+            } else {
+                const { phone, email } = fields;
+                let body = fields;
 
-        // Search for a user by email.
-        const userEmailExists = await User.findOne({ email });
-        if (userEmailExists) {
-            return response.send({ status: false, message: 'Email is already exists in our records.' });
-        }
+                // Save Profile Picture
+                let fileName = files.profile_picture.name;
+                let oldPath = files.profile_picture.path;
+                let newPath = path.join(__dirname, '../../', 'uploads') + '/' + fileName;
+                let rawData = fs.readFileSync(oldPath);
 
-        body.status = true;
-        body.isDeleted = false;
+                fs.writeFile(newPath, rawData, async function (err) {
+                    if (err) {
+                        return response.send({ status: false, message: 'Something went wrong with update status.', error: err });
+                    } else {
+                        await fs.unlinkSync(oldPath);
 
-        const user = new User(request.body)
-        await user.save();
+                        if (!body.distributor_id) {
+                            return response.send({
+                                "status": false,
+                                "message": "Distributor is required"
+                            });
+                        }
+                        if (!body.first_name) {
+                            return response.send({
+                                "status": false,
+                                "message": "First name is required"
+                            });
+                        }
+                        if (!body.last_name) {
+                            return response.send({
+                                "status": false,
+                                "message": "Last name is required"
+                            });
+                        }
+                        if (!body.phone) {
+                            return response.send({
+                                "status": false,
+                                "message": "Phone number is required"
+                            });
+                        }
+                        if (!body.email) {
+                            return response.send({
+                                "status": false,
+                                "message": "Email is required"
+                            });
+                        }
+                        if (!body.role_id) {
+                            return response.send({
+                                "status": false,
+                                "message": "Role id is required"
+                            });
+                        }
 
-        if (user && user.id) {
-            return response.send({ status: true, message: 'Staff member has been added successfully.', data: user });
-        } else {
-            return response.send({ status: false, message: 'Something went wrong with staff member creation.' });
-        }
+                        // Search for a user by phone.
+                        const userPhoneExists = await User.findOne({ phone });
+                        if (userPhoneExists) {
+                            return response.send({ status: false, message: 'Phone number is already exists in our records.' });
+                        }
+
+                        // Search for a user by email.
+                        const userEmailExists = await User.findOne({ email });
+                        if (userEmailExists) {
+                            return response.send({ status: false, message: 'Email is already exists in our records.' });
+                        }
+
+                        body.status = true;
+                        body.isDeleted = false;
+                        body.profilePicture = fileName;
+
+                        const user = new User(body);
+                        await user.save();
+
+                        if (user && user.id) {
+                            return response.send({ status: true, message: 'Staff member has been added successfully.' });
+                        } else {
+                            return response.send({ status: false, message: 'Something went wrong with staff member creation.' });
+                        }
+                    }
+                });
+            }
+        });
     } catch (error) {
         return response.send({ status: false, message: "Something went wrong" })
     }

@@ -105,7 +105,11 @@ let UsersSchema = new Schema({
     isDeleted: {
         type: Boolean,
         default: false
-    }
+    },
+    profilePicture: {
+        type: String,
+        required: false
+    },
 }, {
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });

@@ -141,7 +141,7 @@ exports.placeOrder = async (request, response) => {
                 order_details,
                 distributor_id,
                 order_no: order_id,
-                payment_mode: payment_mode
+                payment_mode: payment_mode,
             };
 
             const order = new Order(createOrderObj)
@@ -790,9 +790,14 @@ exports.updateOrderStatus = async (request, response) => {
                 } else {
                     let actionName = order_status.toLowerCase();
 
-                    if (order_status == "REJECTED_BY") {
+                    if (order_status == "REJECTED") {
                         // Update status in shopify side
                         await exports.updateOrderTags(order_no, "Cancelled By Distributor");
+                    }
+
+                    if (order_status == "RETURN") {
+                        // Update status in shopify side
+                        await exports.updateOrderTags(order_no, "RTO, RTO by Distributor");
                     }
 
                     return response.send({
@@ -985,8 +990,15 @@ exports.getBrandOrders = async (request, response) => {
                             message: "Orders has not been found.",
                         })
                     } else {
+                        var apiUrl = request.protocol + '://' + request.get('host') + '/uploads/';
+
                         orders.forEach((data, index) => {
                             orders[index].order_details = JSON.parse(data.order_details);
+                            orders[index].customer_signature_attachment = null;
+
+                            if (data.customer_signature_attachment) {
+                                orders[index].customer_signature_attachment = apiUrl + data.customer_signature_attachment;
+                            }
                         });
 
                         return response.send({
@@ -1694,7 +1706,7 @@ module.exports.checkCODTransactionOfOrder = async (order_id) => {
 module.exports.updateOrderTags = async (order_id, status) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let order_statuses = ["Accepted By Distributor", "Cancelled By Distributor", "Order Delivered By Distributor"];
+            let order_statuses = ["Accepted By Distributor", "Cancelled By Distributor", "Order Delivered By Distributor", "RTO, RTO by Distributor"];
 
             if (order_statuses.includes(status) == false) {
                 resolve({
