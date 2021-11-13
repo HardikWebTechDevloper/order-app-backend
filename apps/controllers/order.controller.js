@@ -14,7 +14,8 @@ const {
     updateOrderDeliverStatus,
     updateShopifyOrderTags,
     getOrderTransactionById,
-    checkOrderCODStatus
+    checkOrderCODStatus,
+    getAttachmentURL
 } = CommonHelper;
 
 const Order = require('../models/orders.model');
@@ -990,19 +991,19 @@ exports.getBrandOrders = async (request, response) => {
                             message: "Orders has not been found.",
                         })
                     } else {
-                        var apiUrl = request.protocol + '://' + request.get('host') + '/uploads/';
+                        var apiUrl = await getAttachmentURL();
 
-			orders = orders.map(data => {
-				if(data.customer_signature_attachment){
-					data.customer_signature_attachment = apiUrl + data.customer_signature_attachment;
-				}else{
-					data.customer_signature_attachment = null;
-				}
+                        console.log("apiUrl", apiUrl);
 
-				return data;
-			});
+                        orders = orders.map(data => {
+                            if (data.customer_signature_attachment) {
+                                data.customer_signature_attachment = apiUrl + data.customer_signature_attachment;
+                            } else {
+                                data.customer_signature_attachment = null;
+                            }
 
-			console.log("Orders", orders);
+                            return data;
+                        });
 
                         return response.send({
                             status: true,

@@ -373,11 +373,9 @@ exports.getStaffList = async function (request, response) {
             },
         ]).then(function (data) {
             if (data && data.length > 0) {
-                // let newPath = path.join(__dirname, '../../', 'uploads');
-                var apiUrl = request.protocol + '://' + request.get('host') + '/uploads/';
+                var apiUrl = await getAttachmentURL();
 
                 data = JSON.parse(JSON.stringify(data));
-
                 data = data.map(element => {
                     if (element.profilePicture) {
                         element.profilePicture = apiUrl + element.profilePicture;

@@ -254,3 +254,15 @@ module.exports.checkOrderCODStatus = (order_id, requestObj) => {
         return error;
     }
 }
+
+module.exports.getAttachmentURL = () => {
+    let url;
+
+    if (process.env.SERVER == 'production') {
+        url = `https://www.myfitnesspartners.com/uploads/`;
+    } else {
+        url = `http://localhost:5000/uploads/`;
+    }
+
+    return url;
+}
