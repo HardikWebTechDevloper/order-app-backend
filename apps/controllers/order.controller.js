@@ -992,14 +992,17 @@ exports.getBrandOrders = async (request, response) => {
                     } else {
                         var apiUrl = request.protocol + '://' + request.get('host') + '/uploads/';
 
-                        orders.forEach((data, index) => {
-                            orders[index].order_details = JSON.parse(data.order_details);
-                            orders[index].customer_signature_attachment = null;
+			orders = orders.map(data => {
+				if(data.customer_signature_attachment){
+					data.customer_signature_attachment = apiUrl + data.customer_signature_attachment;
+				}else{
+					data.customer_signature_attachment = null;
+				}
 
-                            if (data.customer_signature_attachment) {
-                                orders[index].customer_signature_attachment = apiUrl + data.customer_signature_attachment;
-                            }
-                        });
+				return data;
+			});
+
+			console.log("Orders", orders);
 
                         return response.send({
                             status: true,
